@@ -49,6 +49,7 @@
 - `min_order_qty`
 - `max_stock`
 - `unit_cost`
+- `holding_cost_rate`
 - `priority_weight`
 - `supplier_id`
 - `category`
@@ -62,11 +63,11 @@
 ### サンプル
 
 ```csv
-product_id,product_name,current_stock,avg_daily_sales,lead_time_days,safety_days,review_cycle_days,order_lot,min_order_qty,max_stock,unit_cost,priority_weight,supplier_id,category,location
-1,ミネラルウォーター,20,3.5,5,3,7,12,24,60,110,1.2,飲料仕入先A,飲料,tokyo
-2,お茶,8,2.0,7,2,7,24,24,50,95,1.1,飲料仕入先A,飲料,tokyo
-3,コーヒー,50,1.2,10,5,14,10,20,80,380,1.4,飲料仕入先B,飲料,tokyo
-4,カップ麺,5,4.0,3,2,7,12,24,70,180,1.6,食品仕入先C,食品,tokyo
+product_id,product_name,current_stock,avg_daily_sales,lead_time_days,safety_days,review_cycle_days,order_lot,min_order_qty,max_stock,unit_cost,holding_cost_rate,priority_weight,supplier_id,category,location
+1,ミネラルウォーター,20,3.5,5,3,7,12,24,60,110,0.02,1.2,飲料仕入先A,飲料,tokyo
+2,お茶,8,2.0,7,2,7,24,24,50,95,0.02,1.1,飲料仕入先A,飲料,tokyo
+3,コーヒー,50,1.2,10,5,14,10,20,80,380,0.018,1.4,飲料仕入先B,飲料,tokyo
+4,カップ麺,5,4.0,3,2,7,12,24,70,180,0.025,1.6,食品仕入先C,食品,tokyo
 ```
 
 実ファイルは [sample_inventory.csv](/Users/atsukihayashi/Desktop/在庫/sample_inventory.csv) にあります。
@@ -91,6 +92,14 @@ product_id,product_name,current_stock,avg_daily_sales,lead_time_days,safety_days
 - 最低発注数未満なら見送り
 - 在庫上限を超える場合は見送り
 - 予算上限がある場合は優先度順に採用
+
+## コスト可視化
+
+- `inventory_value = current_stock * unit_cost`
+- `monthly_holding_cost = inventory_value * holding_cost_rate`
+- `excess_stock_cost = excess_stock * unit_cost`
+
+サマリーでは、総在庫金額、過剰在庫候補額、毎月の保管コスト目安も確認できます。
 
 ## 需要予測
 
