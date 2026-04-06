@@ -24,6 +24,9 @@
 - 数値変換エラーの検知
 - 実データ向けCSV正規化
 - 安全在庫、発注点、推奨発注数、在庫日数の計算
+- 販売履歴CSVと外部要因CSVを使った需要予測
+- 需要予測と実績平均日販の切り替え
+- 予測係数と予測理由の表示
 - 全商品一覧の表示
 - 発注が必要な商品の一覧表示
 - 発注推奨リストのCSVダウンロード
@@ -91,6 +94,46 @@ product_id,product_name,current_stock,avg_daily_sales,lead_time_days,safety_days
 - 空文字、`-`、`N/A`、`null` などを欠損として扱います
 
 一方で、帳票形式のCSVや複数ヘッダ行のような複雑なファイルは対象外です。
+
+## 需要予測で使う追加CSV
+
+需要予測MVPを使う場合は、在庫CSVに加えて以下の2つをアップロードします。
+
+### 販売履歴CSV
+
+必須列:
+
+- `date`
+- `product_id`
+- `sales_qty`
+
+任意列:
+
+- `category`
+- `location`
+- `promotion_flag`
+
+### 外部要因CSV
+
+必須列:
+
+- `date`
+- `temp_avg`
+- `rain_mm`
+
+任意列:
+
+- `location`
+- `weather_code`
+- `is_holiday`
+
+### 予測を試せるサンプルCSV
+
+- 在庫: `sample_inventory.csv`
+- 販売履歴: `sample_sales_history.csv`
+- 外部要因: `sample_external_factors.csv`
+
+在庫CSVに `category` と `location` が入っていると、カテゴリ単位モデルと拠点別外部要因をそのまま使えます。
 
 ## 起動方法
 
@@ -179,6 +222,15 @@ OPENAI_API_KEY = "sk-..."
 5. `テーブル` タブで全件や発注対象一覧を見る
 6. 必要なら発注推奨CSVをダウンロードする
 
+### 需要予測MVPの試し方
+
+1. 在庫CSVに `sample_inventory.csv` を使う
+2. 販売履歴CSVに `sample_sales_history.csv` を使う
+3. 外部要因CSVに `sample_external_factors.csv` を使う
+4. サイドバーの `発注計算に使う需要` を `需要予測` または `大きい方` にする
+5. `予測対象日` を `2026-03-29` にする
+6. `予測` タブで商品別予測と係数を確認する
+
 ### チャットでできる質問例
 
 - `発注が必要な商品を見せて`
@@ -187,6 +239,7 @@ OPENAI_API_KEY = "sk-..."
 - `カップ麺の発注理由は？`
 - `安全在庫を5日にしたらどうなる？`
 - `サマリーを教えて`
+- `明日の予測需要が高い商品を見せて`
 
 ## このプロジェクトが目指すサービス像
 
