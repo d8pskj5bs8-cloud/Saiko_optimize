@@ -1073,14 +1073,14 @@ def inject_pop_ui_styles() -> None:
         """
         <style>
         :root {
-            --bg-main: linear-gradient(180deg, #fffdf7 0%, #fff4dc 52%, #ffe8dd 100%);
-            --panel: rgba(255, 255, 255, 0.82);
+            --bg-main: linear-gradient(180deg, #fffef9 0%, #fff6e5 52%, #ffeede 100%);
+            --panel: rgba(255, 255, 255, 0.92);
             --panel-strong: #fff7ef;
-            --line: rgba(217, 133, 59, 0.18);
-            --text-main: #53311c;
-            --text-soft: #80573e;
-            --accent: #ff7a59;
-            --accent-strong: #f05a28;
+            --line: rgba(163, 98, 48, 0.22);
+            --text-main: #3f2616;
+            --text-soft: #63422e;
+            --accent: #ea6a3e;
+            --accent-strong: #c84f26;
             --accent-pale: #ffe1d8;
             --mint: #dff7ea;
             --yellow: #fff1b8;
@@ -1095,17 +1095,44 @@ def inject_pop_ui_styles() -> None:
             padding-bottom: 3rem;
         }
 
-        h1, h2, h3 {
+        .stApp,
+        .stApp div,
+        .stApp label,
+        .stApp p,
+        .stApp li,
+        .stApp span,
+        .stApp small {
             color: var(--text-main);
         }
 
-        p, label, .stCaption, .stMarkdown, .stMetricLabel, .stMetricValue {
-            color: var(--text-main);
+        .stApp h1,
+        .stApp h2,
+        .stApp h3,
+        .stApp h4,
+        .stApp h5,
+        .stApp h6 {
+            color: var(--text-main) !important;
+        }
+
+        .stCaption,
+        .stMarkdown,
+        .stMetricLabel,
+        .stMetricValue,
+        [data-testid="stMarkdownContainer"] p,
+        [data-testid="stMarkdownContainer"] li {
+            color: var(--text-main) !important;
         }
 
         [data-testid="stSidebar"] {
             background: linear-gradient(180deg, #fff7ef 0%, #fff1dc 100%);
             border-left: 1px solid var(--line);
+        }
+
+        [data-testid="stSidebar"] *,
+        [data-testid="stSidebar"] label,
+        [data-testid="stSidebar"] p,
+        [data-testid="stSidebar"] span {
+            color: var(--text-main) !important;
         }
 
         [data-testid="stFileUploader"],
@@ -1139,17 +1166,17 @@ def inject_pop_ui_styles() -> None:
         div[role="radiogroup"] label > div {
             border-radius: 999px;
             padding: 0.55rem 1rem;
-            background: transparent;
-            border: 1px solid transparent;
-            color: var(--text-soft);
+            background: rgba(255, 255, 255, 0.52);
+            border: 1px solid rgba(163, 98, 48, 0.12);
+            color: var(--text-main) !important;
             font-weight: 700;
         }
 
         div[role="radiogroup"] label[data-checked="true"] > div {
-            background: linear-gradient(135deg, var(--accent) 0%, #ff9b54 100%);
-            color: white;
-            border-color: rgba(255, 122, 89, 0.35);
-            box-shadow: 0 8px 18px rgba(240, 90, 40, 0.22);
+            background: linear-gradient(135deg, #ffd68a 0%, #ffbe73 100%);
+            color: #4a2b18 !important;
+            border-color: rgba(200, 79, 38, 0.28);
+            box-shadow: 0 8px 18px rgba(200, 79, 38, 0.16);
         }
 
         .hero-card {
@@ -1165,7 +1192,7 @@ def inject_pop_ui_styles() -> None:
         .hero-badge {
             display: inline-block;
             background: var(--yellow);
-            color: #875100;
+            color: #6f4300 !important;
             border-radius: 999px;
             padding: 0.35rem 0.8rem;
             font-size: 0.84rem;
@@ -1178,11 +1205,11 @@ def inject_pop_ui_styles() -> None:
             font-weight: 800;
             line-height: 1.25;
             margin-bottom: 0.45rem;
-            color: var(--text-main);
+            color: var(--text-main) !important;
         }
 
         .hero-text {
-            color: var(--text-soft);
+            color: var(--text-soft) !important;
             font-size: 1rem;
             line-height: 1.7;
             margin-bottom: 0.9rem;
@@ -1200,53 +1227,46 @@ def inject_pop_ui_styles() -> None:
             border: 1px solid var(--line);
             border-radius: 999px;
             padding: 0.42rem 0.8rem;
-            color: var(--text-main);
+            color: var(--text-main) !important;
             font-weight: 600;
             font-size: 0.92rem;
         }
 
-        .chat-highlight {
-            background: linear-gradient(135deg, #fff0ea 0%, #fff8db 100%);
-            border: 1px solid rgba(255, 122, 89, 0.22);
-            border-radius: 22px;
-            padding: 1rem 1.1rem;
-            margin-bottom: 0.9rem;
-        }
-
-        .chat-highlight-title {
-            font-size: 1.1rem;
-            font-weight: 800;
-            color: var(--text-main);
-            margin-bottom: 0.25rem;
-        }
-
-        .chat-highlight-text {
-            color: var(--text-soft);
-            line-height: 1.7;
-            margin-bottom: 0;
-        }
-
-        .quick-guide {
-            background: var(--mint);
-            border: 1px solid rgba(86, 168, 124, 0.18);
-            border-radius: 18px;
-            padding: 0.9rem 1rem;
-            margin-bottom: 0.8rem;
-            color: #285c42;
-        }
-
-        .quick-guide strong {
-            color: #1e4b36;
+        .chat-shell {
+            background: linear-gradient(180deg, rgba(255, 249, 239, 0.92) 0%, rgba(255, 255, 255, 0.94) 100%);
+            border: 1px solid rgba(163, 98, 48, 0.16);
+            border-radius: 24px;
+            padding: 1rem 1rem 0.35rem;
+            margin-bottom: 0.85rem;
+            box-shadow: 0 14px 30px rgba(164, 102, 58, 0.08);
         }
 
         .stButton > button, .stDownloadButton > button {
             border-radius: 999px;
             border: none;
-            background: linear-gradient(135deg, var(--accent) 0%, #ff9b54 100%);
-            color: white;
+            background: linear-gradient(135deg, var(--accent) 0%, #f08d43 100%);
+            color: #fff8f2;
             font-weight: 700;
             padding: 0.6rem 1rem;
-            box-shadow: 0 10px 20px rgba(240, 90, 40, 0.18);
+            box-shadow: 0 10px 20px rgba(200, 79, 38, 0.18);
+        }
+
+        .stButton > button:hover, .stDownloadButton > button:hover {
+            background: linear-gradient(135deg, var(--accent-strong) 0%, #df7b32 100%);
+            color: #fffefb;
+        }
+
+        [data-testid="stChatInput"] textarea,
+        [data-testid="stTextInput"] input,
+        [data-testid="stNumberInput"] input {
+            color: var(--text-main) !important;
+            background: rgba(255, 255, 255, 0.95) !important;
+        }
+
+        [data-testid="stChatInput"] textarea::placeholder,
+        [data-testid="stTextInput"] input::placeholder,
+        [data-testid="stNumberInput"] input::placeholder {
+            color: #8f6e57 !important;
         }
         </style>
         """,
@@ -1259,16 +1279,16 @@ def render_pop_hero() -> None:
     st.markdown(
         """
         <div class="hero-card">
-            <div class="hero-badge">まずはチャットで相談できます</div>
-            <div class="hero-title">数字を見る前に、<br>「何を見ればいいか」を会話で確認できます。</div>
+            <div class="hero-badge">在庫発注アシスタント</div>
+            <div class="hero-title">在庫の確認と発注判断を、<br>ひとつの画面でシンプルに。</div>
             <div class="hero-text">
-                画面の見方がわからなくても大丈夫です。<br>
-                まずはチャットで「今日なにを発注すればいい？」と聞くだけで、必要な情報から順番に案内します。
+                会話、最適化結果、一覧テーブルを切り替えながら、
+                今の在庫状況とおすすめ発注を落ち着いて確認できます。
             </div>
             <div class="hero-points">
-                <span class="hero-pill">話しかけるだけで使える</span>
-                <span class="hero-pill">おすすめ発注をすぐ確認</span>
-                <span class="hero-pill">欠品や過剰在庫もやさしく説明</span>
+                <span class="hero-pill">会話で確認</span>
+                <span class="hero-pill">おすすめ発注</span>
+                <span class="hero-pill">在庫一覧</span>
             </div>
         </div>
         """,
@@ -1359,20 +1379,7 @@ def render_chat_section(
     st.subheader("在庫アシスタント")
     st.markdown(
         """
-        <div class="chat-highlight">
-            <div class="chat-highlight-title">ここに話しかけるだけでOKです</div>
-            <p class="chat-highlight-text">
-                数字を細かく見なくても、「今日は何を発注する？」「欠品しそうな商品は？」のように自然な言葉で質問できます。
-            </p>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
-    st.markdown(
-        """
-        <div class="quick-guide">
-            <strong>おすすめの聞き方</strong><br>
-            今日のおすすめ発注を見せて / 予算30000円で発注案を出して / お茶の発注理由は？
+        <div class="chat-shell">
         </div>
         """,
         unsafe_allow_html=True,
