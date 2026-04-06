@@ -434,11 +434,12 @@ def preprocess_csv_text(raw_text: str) -> str:
     return "\n".join(normalized_lines)
 
 
-def load_csv_with_fallbacks(uploaded_file: Any) -> Tuple[pd.DataFrame, List[str]]:
+def load_csv_with_fallbacks(uploaded_file: Any, expected_columns: Optional[List[str]] = None) -> Tuple[pd.DataFrame, List[str]]:
     """エンコーディングや区切り文字の違いを吸収しながらCSVを読み込む。"""
     raw_bytes = uploaded_file.getvalue()
     errors: List[str] = []
-    best_result: Optional[Tuple[pd.DataFrame, str, str]] = None
+    best_result: Optional[Tuple[int, pd.DataFrame, str, str, str]] = None
+    expected = expected_columns or REQUIRED_COLUMNS
 
     for encoding in CSV_ENCODING_CANDIDATES:
         text_variants: List[Tuple[str, Any, str]] = [("bytes", raw_bytes, "そのまま")]
@@ -474,9 +475,14 @@ def load_csv_with_fallbacks(uploaded_file: Any) -> Tuple[pd.DataFrame, List[str]
                     if candidate_df.empty and len(candidate_df.columns) == 0:
                         continue
 
-                    best_result = (candidate_df, encoding, f"{separator_label} / {source_label}")
                     normalized_df, _ = normalize_column_names(candidate_df)
-                    if not validate_columns(normalized_df):
+                    matched_columns = sum(1 for col in expected if col in normalized_df.columns)
+                    score = matched_columns * 10 - len(normalized_df.columns)
+                    if best_result is None or score > best_result[0]:
+                        best_result = (score, candidate_df, encoding, separator_label, source_label)
+
+                    missing_columns = [col for col in expected if col not in normalized_df.columns]
+                    if not missing_columns:
                         notes = [f"CSVを encoding={encoding}, 区切り文字={separator_label} で読み込みました。"]
                         if source_label != "そのまま":
                             notes.append("CSVの全角区切り文字や行全体の引用符を前処理して読み込みました。")
@@ -486,8 +492,10 @@ def load_csv_with_fallbacks(uploaded_file: Any) -> Tuple[pd.DataFrame, List[str]
                     errors.append(f"encoding={encoding}, sep={separator_label}, source={source_label}: {exc}")
 
     if best_result is not None:
-        candidate_df, encoding, separator_label = best_result
+        _, candidate_df, encoding, separator_label, source_label = best_result
         notes = [f"CSVを encoding={encoding}, 区切り文字={separator_label} で読み込みました。"]
+        if source_label != "そのまま":
+            notes.append("CSVの全角区切り文字や行全体の引用符を前処理して読み込みました。")
         return candidate_df, notes
 
     raise ValueError("CSVを読み込めませんでした。試した条件: " + " / ".join(errors[:6]))
@@ -614,7 +622,7 @@ def validate_duplicate_keys(df: pd.DataFrame, columns: List[str], label: str) ->
 def prepare_forecast_history_df(uploaded_file: Any) -> Tuple[Optional[pd.DataFrame], List[str], List[str]]:
     """販売履歴CSVを読み込み、予測学習向けに整える。"""
     try:
-        df, load_notes = load_csv_with_fallbacks(uploaded_file)
+        df, load_notes = load_csv_with_fallbacks(uploaded_file, FORECAST_HISTORY_REQUIRED_COLUMNS)
         df, column_notes = normalize_column_names(df)
         df = normalize_cell_values(df)
     except Exception as exc:
@@ -659,7 +667,7 @@ def prepare_forecast_history_df(uploaded_file: Any) -> Tuple[Optional[pd.DataFra
 def prepare_forecast_external_df(uploaded_file: Any) -> Tuple[Optional[pd.DataFrame], List[str], List[str]]:
     """外部要因CSVを読み込み、予測用に整える。"""
     try:
-        df, load_notes = load_csv_with_fallbacks(uploaded_file)
+        df, load_notes = load_csv_with_fallbacks(uploaded_file, FORECAST_EXTERNAL_REQUIRED_COLUMNS)
         df, column_notes = normalize_column_names(df)
         df = normalize_cell_values(df)
     except Exception as exc:
