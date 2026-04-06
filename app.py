@@ -106,8 +106,13 @@ COLUMN_ALIASES: Dict[str, str] = {
     "product_id": "product_id",
     "商品id": "product_id",
     "商品コード": "product_id",
+    "商品ｺｰﾄﾞ": "product_id",
     "商品番号": "product_id",
     "品番": "product_id",
+    "品目コード": "product_id",
+    "品目id": "product_id",
+    "itemcode": "product_id",
+    "item_id": "product_id",
     "sku": "product_id",
     "productname": "product_name",
     "product_name": "product_name",
@@ -172,12 +177,21 @@ COLUMN_ALIASES: Dict[str, str] = {
     "地域": "location",
     "date": "date",
     "日付": "date",
+    "売上日": "date",
+    "販売日": "date",
+    "取引日": "date",
     "salesqty": "sales_qty",
     "sales_qty": "sales_qty",
     "sales": "sales_qty",
     "qty": "sales_qty",
     "販売数": "sales_qty",
     "売上数": "sales_qty",
+    "販売数量": "sales_qty",
+    "売上数量": "sales_qty",
+    "数量": "sales_qty",
+    "出庫数": "sales_qty",
+    "出荷数": "sales_qty",
+    "実績数": "sales_qty",
     "promotionflag": "promotion_flag",
     "promotion_flag": "promotion_flag",
     "promo": "promotion_flag",
@@ -575,7 +589,9 @@ def prepare_forecast_history_df(uploaded_file: Any) -> Tuple[Optional[pd.DataFra
     errors: List[str] = []
     missing_columns = [col for col in FORECAST_HISTORY_REQUIRED_COLUMNS if col not in df.columns]
     if missing_columns:
+        detected_columns = ", ".join(map(str, df.columns.tolist())) if len(df.columns) > 0 else "なし"
         errors.append("販売履歴CSVに必須列が不足しています: " + ", ".join(missing_columns))
+        errors.append("読み取れた列名: " + detected_columns)
         return None, load_notes + column_notes, errors
 
     if "promotion_flag" not in df.columns:
