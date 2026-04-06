@@ -1329,22 +1329,32 @@ def inject_pop_ui_styles() -> None:
 
         [data-baseweb="tab-list"] {
             gap: 0.4rem;
-            background: rgba(255, 255, 255, 0.65);
-            border: 1px solid rgba(86, 112, 134, 0.12);
+            background: linear-gradient(180deg, #dfeaf3 0%, #d4e3ef 100%);
+            border: 1px solid rgba(86, 112, 134, 0.20);
             border-radius: 999px;
-            padding: 0.35rem;
+            padding: 0.4rem;
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.65);
         }
 
         [data-baseweb="tab"] {
-            background: transparent !important;
-            color: var(--text-soft) !important;
+            background: rgba(255, 255, 255, 0.58) !important;
+            color: #3f586d !important;
             border-radius: 999px !important;
+            border: 1px solid rgba(86, 112, 134, 0.12) !important;
+            font-weight: 700 !important;
+            padding: 0.45rem 1rem !important;
         }
 
         [aria-selected="true"][data-baseweb="tab"] {
-            background: #ffffff !important;
+            background: linear-gradient(180deg, #ffffff 0%, #f4f9fd 100%) !important;
+            color: #18354b !important;
+            border: 1px solid rgba(47, 128, 196, 0.28) !important;
+            box-shadow: 0 6px 16px rgba(58, 89, 112, 0.12);
+        }
+
+        [data-baseweb="tab"]:hover {
+            background: rgba(255, 255, 255, 0.82) !important;
             color: var(--text-main) !important;
-            box-shadow: 0 6px 16px rgba(58, 89, 112, 0.10);
         }
         </style>
         """,
