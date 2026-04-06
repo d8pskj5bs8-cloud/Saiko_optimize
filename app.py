@@ -417,6 +417,23 @@ def clean_numeric_value(value: Any) -> Any:
     return text
 
 
+def preprocess_csv_text(raw_text: str) -> str:
+    """CSV全体の軽微な崩れを補正して読み取りやすくする。"""
+    text = raw_text.replace("\r\n", "\n").replace("\r", "\n").replace("\ufeff", "")
+    text = text.replace("，", ",").replace("；", ";")
+
+    normalized_lines: List[str] = []
+    for line in text.split("\n"):
+        stripped = line.strip()
+        if len(stripped) >= 2 and stripped[0] == stripped[-1] and stripped[0] in {'"', "'"}:
+            inner = stripped[1:-1]
+            if any(separator in inner for separator in [",", ";", "\t"]):
+                normalized_lines.append(inner)
+                continue
+        normalized_lines.append(line)
+    return "\n".join(normalized_lines)
+
+
 def load_csv_with_fallbacks(uploaded_file: Any) -> Tuple[pd.DataFrame, List[str]]:
     """エンコーディングや区切り文字の違いを吸収しながらCSVを読み込む。"""
     raw_bytes = uploaded_file.getvalue()
@@ -424,32 +441,49 @@ def load_csv_with_fallbacks(uploaded_file: Any) -> Tuple[pd.DataFrame, List[str]
     best_result: Optional[Tuple[pd.DataFrame, str, str]] = None
 
     for encoding in CSV_ENCODING_CANDIDATES:
-        for separator in CSV_SEPARATOR_CANDIDATES:
-            try:
-                read_options: Dict[str, Any] = {
-                    "encoding": encoding,
-                    "skipinitialspace": True,
-                }
-                separator_label = "自動判定"
-                if separator is None:
-                    read_options["sep"] = None
-                    read_options["engine"] = "python"
-                else:
-                    read_options["sep"] = separator
-                    separator_label = separator
+        text_variants: List[Tuple[str, Any, str]] = [("bytes", raw_bytes, "そのまま")]
+        try:
+            decoded_text = raw_bytes.decode(encoding)
+            preprocessed_text = preprocess_csv_text(decoded_text)
+            if preprocessed_text != decoded_text:
+                text_variants.append(("text", preprocessed_text, "前処理"))
+        except Exception:
+            pass
 
-                candidate_df = pd.read_csv(io.BytesIO(raw_bytes), **read_options)
-                if candidate_df.empty and len(candidate_df.columns) == 0:
-                    continue
+        for source_type, source_value, source_label in text_variants:
+            for separator in CSV_SEPARATOR_CANDIDATES:
+                try:
+                    read_options: Dict[str, Any] = {
+                        "skipinitialspace": True,
+                    }
+                    if source_type == "bytes":
+                        source = io.BytesIO(source_value)
+                        read_options["encoding"] = encoding
+                    else:
+                        source = io.StringIO(source_value)
 
-                best_result = (candidate_df, encoding, separator_label)
-                normalized_df, _ = normalize_column_names(candidate_df)
-                if not validate_columns(normalized_df):
-                    notes = [f"CSVを encoding={encoding}, 区切り文字={separator_label} で読み込みました。"]
-                    return candidate_df, notes
-            except Exception as exc:
-                separator_label = "自動判定" if separator is None else separator
-                errors.append(f"encoding={encoding}, sep={separator_label}: {exc}")
+                    separator_label = "自動判定"
+                    if separator is None:
+                        read_options["sep"] = None
+                        read_options["engine"] = "python"
+                    else:
+                        read_options["sep"] = separator
+                        separator_label = separator
+
+                    candidate_df = pd.read_csv(source, **read_options)
+                    if candidate_df.empty and len(candidate_df.columns) == 0:
+                        continue
+
+                    best_result = (candidate_df, encoding, f"{separator_label} / {source_label}")
+                    normalized_df, _ = normalize_column_names(candidate_df)
+                    if not validate_columns(normalized_df):
+                        notes = [f"CSVを encoding={encoding}, 区切り文字={separator_label} で読み込みました。"]
+                        if source_label != "そのまま":
+                            notes.append("CSVの全角区切り文字や行全体の引用符を前処理して読み込みました。")
+                        return candidate_df, notes
+                except Exception as exc:
+                    separator_label = "自動判定" if separator is None else separator
+                    errors.append(f"encoding={encoding}, sep={separator_label}, source={source_label}: {exc}")
 
     if best_result is not None:
         candidate_df, encoding, separator_label = best_result
