@@ -106,6 +106,36 @@ def build_forecast_reason_summary(feature_values: Dict[str, float], coefficients
     return "主な要因: " + "、".join(parts)
 
 
+def build_prediction_sequence(
+    intercept: float,
+    coefficients: np.ndarray,
+    recent_sales: pd.Series,
+    future_external: pd.DataFrame,
+    horizon_days: int,
+) -> List[float]:
+    """将来日数分の需要を順次予測する。"""
+    if horizon_days <= 0:
+        return []
+
+    sales_history = [float(value) for value in recent_sales.dropna().tail(7).tolist()]
+    if not sales_history:
+        return []
+
+    predictions: List[float] = []
+    for _, external_row in future_external.head(horizon_days).iterrows():
+        feature_row = external_row.to_dict()
+        feature_row["promotion_flag"] = 0
+        feature_row["lag_1_sales"] = sales_history[-1]
+        history_window = sales_history[-7:]
+        feature_row["rolling_mean_7"] = float(np.mean(history_window))
+        feature_vector = np.array([float(feature_row.get(column, 0.0)) for column in FORECAST_FEATURE_COLUMNS], dtype=float)
+        predicted_sales = max(0.0, float(intercept + np.dot(feature_vector, coefficients)))
+        predictions.append(predicted_sales)
+        sales_history.append(predicted_sales)
+
+    return predictions
+
+
 def generate_demand_forecast(
     inventory_df: pd.DataFrame,
     history_df: pd.DataFrame,
@@ -124,9 +154,12 @@ def generate_demand_forecast(
     inventory_products = inventory_df.copy()
     inventory_products["category"] = inventory_products["category"].fillna("未分類")
     inventory_products["location"] = inventory_products["location"].fillna("default")
+    inventory_products["forecast_horizon_days"] = (
+        inventory_products["lead_time_days"] + inventory_products["review_cycle_days"] + inventory_products["safety_days"]
+    ).clip(lower=1).astype(int)
 
     latest_history = training_df.sort_values("date").groupby("product_id").tail(7)
-    future_external = external_df[external_df["date"] == forecast_date].copy()
+    future_external = external_df[external_df["date"] >= forecast_date].copy()
     if future_external.empty:
         available_dates = external_df["date"].dropna().sort_values()
         available_range_text = ""
@@ -143,6 +176,8 @@ def generate_demand_forecast(
         }
 
     future_external = build_forecast_feature_frame(future_external)
+    future_external["date"] = pd.to_datetime(future_external["date"])
+    max_horizon_days = int(inventory_products["forecast_horizon_days"].max()) if not inventory_products.empty else 1
 
     for category_name, category_products in inventory_products.groupby("category"):
         category_train = training_df[training_df["category"] == category_name].copy()
@@ -184,24 +219,51 @@ def generate_demand_forecast(
                 continue
 
             location = str(product_row["location"])
-            external_row = future_external[future_external["location"].astype(str) == location]
-            if external_row.empty and future_external["location"].nunique() == 1:
-                external_row = future_external.iloc[[0]].copy()
-            if external_row.empty:
+            external_rows = future_external[future_external["location"].astype(str) == location].sort_values("date").copy()
+            if external_rows.empty and future_external["location"].nunique() == 1:
+                external_rows = future_external.sort_values("date").copy()
+            if external_rows.empty:
                 notes.append(f"{product_row['product_name']}: 予測日に対応する拠点データが無いため予測をスキップしました。")
                 continue
 
-            future_row = external_row.iloc[0].to_dict()
+            horizon_days = int(product_row["forecast_horizon_days"])
+            available_horizon = min(horizon_days, len(external_rows))
+            if available_horizon < horizon_days:
+                notes.append(
+                    f"{product_row['product_name']}: 予測に使える外部要因は {available_horizon} 日分までのため、"
+                    f"{horizon_days} 日必要な累積需要は計算できませんでした。"
+                )
+
+            prediction_path = build_prediction_sequence(
+                intercept=intercept,
+                coefficients=coefficients,
+                recent_sales=recent_sales["sales_qty"],
+                future_external=external_rows,
+                horizon_days=min(max_horizon_days, len(external_rows)),
+            )
+            if not prediction_path:
+                notes.append(f"{product_row['product_name']}: 将来需要の予測列を作れませんでした。")
+                continue
+
+            predicted_sales = float(prediction_path[0])
+            forecast_period_demand = np.nan
+            forecast_effective_daily_sales = np.nan
+            if available_horizon >= horizon_days:
+                forecast_period_demand = round(float(sum(prediction_path[:horizon_days])), 2)
+                forecast_effective_daily_sales = round(float(forecast_period_demand / horizon_days), 2)
+
+            future_row = external_rows.iloc[0].to_dict()
             future_row["promotion_flag"] = 0
             future_row["lag_1_sales"] = float(recent_sales.iloc[-1]["sales_qty"])
             future_row["rolling_mean_7"] = float(recent_sales["sales_qty"].tail(7).mean())
-            feature_vector = np.array([float(future_row.get(column, 0.0)) for column in FORECAST_FEATURE_COLUMNS], dtype=float)
-            predicted_sales = max(0.0, float(intercept + np.dot(feature_vector, coefficients)))
 
             forecast_rows.append(
                 {
                     "product_id": str(product_row["product_id"]),
                     "forecast_daily_sales": round(predicted_sales, 2),
+                    "forecast_period_demand": forecast_period_demand,
+                    "forecast_horizon_days": horizon_days,
+                    "forecast_effective_daily_sales": forecast_effective_daily_sales,
                     "forecast_model_group": category_name,
                     "forecast_reason_summary": build_forecast_reason_summary(future_row, coefficient_map),
                 }

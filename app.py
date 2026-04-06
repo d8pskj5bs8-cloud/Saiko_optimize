@@ -244,7 +244,17 @@ def main() -> None:
             forecast_df = forecast_result.get("forecast_df")
             if isinstance(forecast_df, pd.DataFrame) and not forecast_df.empty:
                 filtered_df = filtered_df.merge(
-                    forecast_df[["product_id", "forecast_daily_sales", "forecast_model_group", "forecast_reason_summary"]],
+                    forecast_df[
+                        [
+                            "product_id",
+                            "forecast_daily_sales",
+                            "forecast_period_demand",
+                            "forecast_horizon_days",
+                            "forecast_effective_daily_sales",
+                            "forecast_model_group",
+                            "forecast_reason_summary",
+                        ]
+                    ],
                     on="product_id",
                     how="left",
                 )
@@ -262,13 +272,22 @@ def main() -> None:
         filtered_df["forecast_model_group"] = ""
     if "forecast_reason_summary" not in filtered_df.columns:
         filtered_df["forecast_reason_summary"] = ""
+    if "forecast_period_demand" not in filtered_df.columns:
+        filtered_df["forecast_period_demand"] = np.nan
+    if "forecast_horizon_days" not in filtered_df.columns:
+        filtered_df["forecast_horizon_days"] = (
+            filtered_df["lead_time_days"] + filtered_df["review_cycle_days"] + filtered_df["safety_days"]
+        ).clip(lower=1)
+    if "forecast_effective_daily_sales" not in filtered_df.columns:
+        filtered_df["forecast_effective_daily_sales"] = np.nan
 
+    forecast_basis_column = "forecast_effective_daily_sales" if order_policy == "定期発注" else "forecast_daily_sales"
     if forecast_mode == "需要予測":
-        filtered_df["selected_daily_sales"] = filtered_df["forecast_daily_sales"].fillna(filtered_df["avg_daily_sales"])
+        filtered_df["selected_daily_sales"] = filtered_df[forecast_basis_column].fillna(filtered_df["avg_daily_sales"])
     elif forecast_mode == "大きい方":
         filtered_df["selected_daily_sales"] = np.maximum(
             filtered_df["avg_daily_sales"].astype(float),
-            filtered_df["forecast_daily_sales"].fillna(0).astype(float),
+            filtered_df[forecast_basis_column].fillna(0).astype(float),
         )
     else:
         filtered_df["selected_daily_sales"] = filtered_df["avg_daily_sales"].astype(float)

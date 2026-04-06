@@ -167,6 +167,9 @@ def prepare_display_df(df: pd.DataFrame, columns: List[str]) -> pd.DataFrame:
     for numeric_column in [
         "avg_daily_sales",
         "forecast_daily_sales",
+        "forecast_effective_daily_sales",
+        "forecast_period_demand",
+        "forecast_horizon_days",
         "demand_basis_value",
         "forecast_diff",
         "reorder_point",

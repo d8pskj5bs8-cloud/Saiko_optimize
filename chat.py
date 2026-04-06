@@ -97,6 +97,12 @@ def build_product_message(row: pd.Series) -> str:
     forecast_text = ""
     if not pd.isna(row.get("forecast_daily_sales", np.nan)):
         forecast_text = f" 需要予測は {float(row['forecast_daily_sales']):.2f} です。"
+    if row.get("order_policy_label") == "定期発注" and not pd.isna(row.get("forecast_period_demand", np.nan)):
+        forecast_text += (
+            f" 定期発注では {int(row.get('forecast_horizon_days', 0))} 日分の累積需要 "
+            f"{float(row['forecast_period_demand']):.2f} を日換算した"
+            f" {float(row.get('forecast_effective_daily_sales', row['forecast_daily_sales'])):.2f} を使っています。"
+        )
     planning_text = (
         f"{row['planning_target_label']}は {row['planning_target_value']:.1f} です。"
         if row.get("order_policy_label") == "定期発注"
@@ -122,6 +128,11 @@ def build_reason_message(row: pd.Series) -> str:
             f"(リードタイム {row['lead_time_days']}日 + 発注周期 {row['review_cycle_days']}日 + 安全在庫日数 {row['safety_days']}日)"
             f" = {row['target_stock']:.1f} です。"
         )
+        if not pd.isna(row.get("forecast_period_demand", np.nan)):
+            target_expression += (
+                f" 需要予測ベースでは、この {int(row.get('forecast_horizon_days', 0))} 日間の累積需要を"
+                f" 日換算した値を使っています。"
+            )
     else:
         target_expression = (
             f"発注点は 需要 {row['demand_basis_value']:.2f} × リードタイム {row['lead_time_days']}日 + "
@@ -213,6 +224,15 @@ def serialize_product_row(row: pd.Series) -> Dict[str, Any]:
         "current_stock": float(row["current_stock"]),
         "avg_daily_sales": float(row["avg_daily_sales"]),
         "forecast_daily_sales": None if pd.isna(row.get("forecast_daily_sales", np.nan)) else round(float(row["forecast_daily_sales"]), 2),
+        "forecast_effective_daily_sales": None
+        if pd.isna(row.get("forecast_effective_daily_sales", np.nan))
+        else round(float(row["forecast_effective_daily_sales"]), 2),
+        "forecast_period_demand": None
+        if pd.isna(row.get("forecast_period_demand", np.nan))
+        else round(float(row["forecast_period_demand"]), 2),
+        "forecast_horizon_days": None
+        if pd.isna(row.get("forecast_horizon_days", np.nan))
+        else int(float(row["forecast_horizon_days"])),
         "lead_time_days": float(row["lead_time_days"]),
         "safety_days": float(row["safety_days"]),
         "review_cycle_days": float(row.get("review_cycle_days", 0)),
@@ -529,11 +549,19 @@ def answer_inventory_question(
         if pd.isna(row.get("forecast_daily_sales", np.nan)):
             return {"content": f"{product_name} は履歴や外部要因が不足しているため、今回は予測を作れていません。実績平均日販を使って判断しています。", "dataframe": None}
         reason_text = row.get("forecast_reason_summary", "") or "主な要因はまだ整理できていません。"
+        period_text = ""
+        if not pd.isna(row.get("forecast_period_demand", np.nan)):
+            period_text = (
+                f" 定期発注向けには {int(row.get('forecast_horizon_days', 0))} 日累積の予測需要"
+                f" {float(row['forecast_period_demand']):.2f} も使っています。"
+            )
         return {
             "content": (
                 f"{product_name} の予測日販は {float(row['forecast_daily_sales']):.2f} です。"
                 f" 実績平均日販 {float(row['avg_daily_sales']):.2f} と比べると差は {float(row['forecast_diff']):+.2f} で、"
-                f"{reason_text} 発注計算では {row['demand_basis_label']} を使っています。"
+                f"{reason_text}"
+                f" 発注計算では {row['demand_basis_label']} を使っています。"
+                f"{period_text}"
             ),
             "dataframe": prepare_display_df(
                 metrics_df.loc[metrics_df["product_name"] == product_name],

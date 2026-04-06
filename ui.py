@@ -66,7 +66,10 @@ def build_forecast_plain_summary(forecast_df: pd.DataFrame) -> str:
     increased_df = available_df[available_df["forecast_diff"] > 0].sort_values("forecast_diff", ascending=False)
     decreased_df = available_df[available_df["forecast_diff"] < 0].sort_values("forecast_diff")
 
+    period_ready_count = int(available_df["forecast_period_demand"].notna().sum()) if "forecast_period_demand" in available_df.columns else 0
     summary = [f"需要予測を使えるのは {len(available_df)} 商品です。"]
+    if period_ready_count > 0:
+        summary.append(f"このうち {period_ready_count} 商品は、保護期間の累積需要も計算できています。")
     if not increased_df.empty:
         top_up = increased_df.iloc[0]
         summary.append(
@@ -548,6 +551,7 @@ def render_forecast_tab(
     """需要予測の概要を表示する。"""
     st.subheader("需要予測の見方")
     st.caption(f"予測対象日: {forecast_date.date()} / 発注計算モード: {forecast_mode}")
+    st.caption("定期発注では、翌日予測だけでなくリードタイム + 発注周期 + 安全日数の累積需要を日換算して発注計算に使います。")
     st.write(forecast_result["message"])
 
     for note in forecast_result.get("notes", [])[:5]:
