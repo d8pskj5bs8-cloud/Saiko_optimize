@@ -1150,6 +1150,39 @@ def inject_pop_ui_styles() -> None:
             padding: 0.4rem 0.8rem;
         }
 
+        [data-testid="stFileUploader"] section,
+        [data-testid="stFileUploaderDropzone"] {
+            background: linear-gradient(180deg, #fffaf1 0%, #fff4e6 100%) !important;
+            border: 1px dashed rgba(163, 98, 48, 0.28) !important;
+            color: var(--text-main) !important;
+        }
+
+        [data-testid="stFileUploader"] small,
+        [data-testid="stFileUploader"] span,
+        [data-testid="stFileUploader"] p,
+        [data-testid="stFileUploader"] label {
+            color: var(--text-main) !important;
+        }
+
+        .stCodeBlock,
+        .stCode,
+        pre,
+        code {
+            background: #fffaf3 !important;
+            color: #4a2b18 !important;
+        }
+
+        pre {
+            border: 1px solid rgba(163, 98, 48, 0.18) !important;
+            border-radius: 18px !important;
+        }
+
+        .stCodeBlock code,
+        .stCode code,
+        pre code {
+            color: #4a2b18 !important;
+        }
+
         div[role="radiogroup"] {
             gap: 0.7rem;
             padding: 0.35rem;
@@ -1261,6 +1294,8 @@ def inject_pop_ui_styles() -> None:
         [data-testid="stNumberInput"] input {
             color: var(--text-main) !important;
             background: rgba(255, 255, 255, 0.95) !important;
+            caret-color: var(--text-main) !important;
+            pointer-events: auto !important;
         }
 
         [data-testid="stChatInput"] textarea::placeholder,
@@ -1293,17 +1328,6 @@ def render_pop_hero() -> None:
         </div>
         """,
         unsafe_allow_html=True,
-    )
-
-
-def render_view_selector() -> str:
-    """チャットを初期表示にした画面切り替えを表示する。"""
-    return st.radio(
-        "表示を切り替える",
-        ["おすすめ会話", "最適化結果", "一覧テーブル"],
-        horizontal=True,
-        index=0,
-        label_visibility="collapsed",
     )
 
 
@@ -1376,16 +1400,11 @@ def render_chat_section(
     openai_api_key: str,
 ) -> None:
     """チャットUIを表示する。"""
-    st.subheader("在庫アシスタント")
-    st.markdown(
-        """
-        <div class="chat-shell">
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
-
     initialize_chat_state()
+
+    st.divider()
+    st.subheader("チャット")
+    st.caption("気になる商品名や予算を入れると、その条件で確認できます。")
 
     for message in st.session_state.chat_messages:
         with st.chat_message(message["role"]):
@@ -1393,7 +1412,7 @@ def render_chat_section(
             if message["dataframe"] is not None:
                 st.dataframe(message["dataframe"], use_container_width=True)
 
-    prompt = st.chat_input("在庫について質問してください")
+    prompt = st.chat_input("チャットボットに質問")
     if prompt:
         st.session_state.chat_messages.append({"role": "user", "content": prompt, "dataframe": None})
         if use_llm_chat:
@@ -1540,23 +1559,24 @@ def main() -> None:
 
     render_summary(metrics_df, order_needed_df, optimized_df, budget_limit)
 
-    selected_view = render_view_selector()
+    planning_tab, table_tab = st.tabs(["最適化", "一覧"])
 
-    if selected_view == "おすすめ会話":
-        render_chat_section(
-            filtered_df,
-            metrics_df,
-            order_needed_df,
-            optimized_df,
-            risk_df,
-            overstock_df,
-            use_llm_chat,
-            openai_api_key,
-        )
-    elif selected_view == "最適化結果":
+    with planning_tab:
         render_planning_tab(optimized_df, skipped_df, risk_df, overstock_df)
-    else:
+
+    with table_tab:
         render_tables(metrics_df, order_needed_df)
+
+    render_chat_section(
+        filtered_df,
+        metrics_df,
+        order_needed_df,
+        optimized_df,
+        risk_df,
+        overstock_df,
+        use_llm_chat,
+        openai_api_key,
+    )
 
 
 if __name__ == "__main__":
