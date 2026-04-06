@@ -1067,6 +1067,226 @@ def render_summary(
     st.caption(f"現在の予算設定: {budget_text}")
 
 
+def inject_pop_ui_styles() -> None:
+    """親しみやすく、チャット導線が見えやすい配色と装飾を適用する。"""
+    st.markdown(
+        """
+        <style>
+        :root {
+            --bg-main: linear-gradient(180deg, #fffdf7 0%, #fff4dc 52%, #ffe8dd 100%);
+            --panel: rgba(255, 255, 255, 0.82);
+            --panel-strong: #fff7ef;
+            --line: rgba(217, 133, 59, 0.18);
+            --text-main: #53311c;
+            --text-soft: #80573e;
+            --accent: #ff7a59;
+            --accent-strong: #f05a28;
+            --accent-pale: #ffe1d8;
+            --mint: #dff7ea;
+            --yellow: #fff1b8;
+        }
+
+        .stApp {
+            background: var(--bg-main);
+        }
+
+        .block-container {
+            padding-top: 2rem;
+            padding-bottom: 3rem;
+        }
+
+        h1, h2, h3 {
+            color: var(--text-main);
+        }
+
+        p, label, .stCaption, .stMarkdown, .stMetricLabel, .stMetricValue {
+            color: var(--text-main);
+        }
+
+        [data-testid="stSidebar"] {
+            background: linear-gradient(180deg, #fff7ef 0%, #fff1dc 100%);
+            border-left: 1px solid var(--line);
+        }
+
+        [data-testid="stFileUploader"],
+        [data-testid="stMetric"],
+        [data-testid="stDataFrame"],
+        [data-testid="stExpander"],
+        div[data-testid="stChatMessage"] {
+            background: var(--panel);
+            border: 1px solid var(--line);
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(164, 102, 58, 0.08);
+        }
+
+        div[data-testid="stChatMessage"] {
+            padding: 0.4rem 0.8rem;
+        }
+
+        div[role="radiogroup"] {
+            gap: 0.7rem;
+            padding: 0.35rem;
+            background: rgba(255, 255, 255, 0.72);
+            border: 1px solid var(--line);
+            border-radius: 999px;
+        }
+
+        div[role="radiogroup"] label {
+            border-radius: 999px !important;
+            padding: 0.25rem 0.35rem !important;
+        }
+
+        div[role="radiogroup"] label > div {
+            border-radius: 999px;
+            padding: 0.55rem 1rem;
+            background: transparent;
+            border: 1px solid transparent;
+            color: var(--text-soft);
+            font-weight: 700;
+        }
+
+        div[role="radiogroup"] label[data-checked="true"] > div {
+            background: linear-gradient(135deg, var(--accent) 0%, #ff9b54 100%);
+            color: white;
+            border-color: rgba(255, 122, 89, 0.35);
+            box-shadow: 0 8px 18px rgba(240, 90, 40, 0.22);
+        }
+
+        .hero-card {
+            background:
+                radial-gradient(circle at top left, rgba(255,255,255,0.95) 0%, rgba(255,255,255,0.8) 34%, rgba(255,240,221,0.86) 100%);
+            border: 1px solid var(--line);
+            border-radius: 28px;
+            padding: 1.4rem 1.5rem 1.2rem;
+            box-shadow: 0 18px 40px rgba(164, 102, 58, 0.12);
+            margin-bottom: 1rem;
+        }
+
+        .hero-badge {
+            display: inline-block;
+            background: var(--yellow);
+            color: #875100;
+            border-radius: 999px;
+            padding: 0.35rem 0.8rem;
+            font-size: 0.84rem;
+            font-weight: 700;
+            margin-bottom: 0.65rem;
+        }
+
+        .hero-title {
+            font-size: 2rem;
+            font-weight: 800;
+            line-height: 1.25;
+            margin-bottom: 0.45rem;
+            color: var(--text-main);
+        }
+
+        .hero-text {
+            color: var(--text-soft);
+            font-size: 1rem;
+            line-height: 1.7;
+            margin-bottom: 0.9rem;
+        }
+
+        .hero-points {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.55rem;
+            margin-top: 0.35rem;
+        }
+
+        .hero-pill {
+            background: white;
+            border: 1px solid var(--line);
+            border-radius: 999px;
+            padding: 0.42rem 0.8rem;
+            color: var(--text-main);
+            font-weight: 600;
+            font-size: 0.92rem;
+        }
+
+        .chat-highlight {
+            background: linear-gradient(135deg, #fff0ea 0%, #fff8db 100%);
+            border: 1px solid rgba(255, 122, 89, 0.22);
+            border-radius: 22px;
+            padding: 1rem 1.1rem;
+            margin-bottom: 0.9rem;
+        }
+
+        .chat-highlight-title {
+            font-size: 1.1rem;
+            font-weight: 800;
+            color: var(--text-main);
+            margin-bottom: 0.25rem;
+        }
+
+        .chat-highlight-text {
+            color: var(--text-soft);
+            line-height: 1.7;
+            margin-bottom: 0;
+        }
+
+        .quick-guide {
+            background: var(--mint);
+            border: 1px solid rgba(86, 168, 124, 0.18);
+            border-radius: 18px;
+            padding: 0.9rem 1rem;
+            margin-bottom: 0.8rem;
+            color: #285c42;
+        }
+
+        .quick-guide strong {
+            color: #1e4b36;
+        }
+
+        .stButton > button, .stDownloadButton > button {
+            border-radius: 999px;
+            border: none;
+            background: linear-gradient(135deg, var(--accent) 0%, #ff9b54 100%);
+            color: white;
+            font-weight: 700;
+            padding: 0.6rem 1rem;
+            box-shadow: 0 10px 20px rgba(240, 90, 40, 0.18);
+        }
+        </style>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
+def render_pop_hero() -> None:
+    """難しい印象をやわらげる導入エリアを表示する。"""
+    st.markdown(
+        """
+        <div class="hero-card">
+            <div class="hero-badge">まずはチャットで相談できます</div>
+            <div class="hero-title">数字を見る前に、<br>「何を見ればいいか」を会話で確認できます。</div>
+            <div class="hero-text">
+                画面の見方がわからなくても大丈夫です。<br>
+                まずはチャットで「今日なにを発注すればいい？」と聞くだけで、必要な情報から順番に案内します。
+            </div>
+            <div class="hero-points">
+                <span class="hero-pill">話しかけるだけで使える</span>
+                <span class="hero-pill">おすすめ発注をすぐ確認</span>
+                <span class="hero-pill">欠品や過剰在庫もやさしく説明</span>
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
+def render_view_selector() -> str:
+    """チャットを初期表示にした画面切り替えを表示する。"""
+    return st.radio(
+        "表示を切り替える",
+        ["おすすめ会話", "最適化結果", "一覧テーブル"],
+        horizontal=True,
+        index=0,
+        label_visibility="collapsed",
+    )
+
+
 def render_planning_tab(
     optimized_df: pd.DataFrame,
     skipped_df: pd.DataFrame,
@@ -1137,8 +1357,25 @@ def render_chat_section(
 ) -> None:
     """チャットUIを表示する。"""
     st.subheader("在庫アシスタント")
-    st.caption(
-        "会話で在庫状況やおすすめ発注を確認できます。例: 予算30000円で発注案を出して / 欠品リスクを見せて"
+    st.markdown(
+        """
+        <div class="chat-highlight">
+            <div class="chat-highlight-title">ここに話しかけるだけでOKです</div>
+            <p class="chat-highlight-text">
+                数字を細かく見なくても、「今日は何を発注する？」「欠品しそうな商品は？」のように自然な言葉で質問できます。
+            </p>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+    st.markdown(
+        """
+        <div class="quick-guide">
+            <strong>おすすめの聞き方</strong><br>
+            今日のおすすめ発注を見せて / 予算30000円で発注案を出して / お茶の発注理由は？
+        </div>
+        """,
+        unsafe_allow_html=True,
     )
 
     initialize_chat_state()
@@ -1187,11 +1424,13 @@ def render_chat_section(
 
 def main() -> None:
     st.set_page_config(page_title="在庫発注最適化アシスタント", layout="wide")
+    inject_pop_ui_styles()
 
     st.title("在庫発注最適化アシスタント")
     st.write(
         "CSVから在庫状況を読み取り、発注単位・最小発注数・原価・重要度・予算を考慮したおすすめ発注案を確認できます。"
     )
+    render_pop_hero()
 
     uploaded_file = st.file_uploader("CSVファイルを選択してください", type="csv")
 
@@ -1294,10 +1533,9 @@ def main() -> None:
 
     render_summary(metrics_df, order_needed_df, optimized_df, budget_limit)
 
-    planning_tab, chat_tab, table_tab = st.tabs(["最適化", "チャット", "テーブル"])
-    with planning_tab:
-        render_planning_tab(optimized_df, skipped_df, risk_df, overstock_df)
-    with chat_tab:
+    selected_view = render_view_selector()
+
+    if selected_view == "おすすめ会話":
         render_chat_section(
             filtered_df,
             metrics_df,
@@ -1308,7 +1546,9 @@ def main() -> None:
             use_llm_chat,
             openai_api_key,
         )
-    with table_tab:
+    elif selected_view == "最適化結果":
+        render_planning_tab(optimized_df, skipped_df, risk_df, overstock_df)
+    else:
         render_tables(metrics_df, order_needed_df)
 
 
