@@ -1,6 +1,6 @@
-product_id,product_name,current_stock,avg_daily_sales,lead_time_days,safety_days,order_unit,min_order_qty,unit_cost,priority_weight,supplier,category,location
-1,ミネラルウォーター,20,3.5,5,3,12,24,110,1.2,飲料仕入先A,飲料,tokyo
-2,お茶,8,2.0,7,2,24,24,95,1.1,飲料仕入先A,飲料,tokyo
-3,コーヒー,50,1.2,10,5,10,20,380,1.4,飲料仕入先B,飲料,tokyo
-4,カップ麺,5,4.0,3,2,12,24,180,1.6,食品仕入先C,食品,tokyo
-5,スポーツドリンク,80,1.0,4,2,24,24,140,0.8,飲料仕入先A,飲料,tokyo
+product_id,product_name,current_stock,avg_daily_sales,lead_time_days,safety_days,review_cycle_days,order_lot,min_order_qty,max_stock,unit_cost,priority_weight,supplier_id,category,location
+1,ミネラルウォーター,20,3.5,5,3,7,12,24,60,110,1.2,飲料仕入先A,飲料,tokyo
+2,お茶,8,2.0,7,2,7,24,24,50,95,1.1,飲料仕入先A,飲料,tokyo
+3,コーヒー,50,1.2,10,5,14,10,20,80,380,1.4,飲料仕入先B,飲料,tokyo
+4,カップ麺,5,4.0,3,2,7,12,24,70,180,1.6,食品仕入先C,食品,tokyo
+5,スポーツドリンク,80,1.0,4,2,7,24,24,90,140,0.8,飲料仕入先A,飲料,tokyo

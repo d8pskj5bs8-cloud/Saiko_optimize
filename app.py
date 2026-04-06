@@ -37,6 +37,8 @@ OPTIONAL_DEFAULTS: Dict[str, Any] = {
     "supplier": "未設定",
     "category": "未分類",
     "location": "default",
+    "review_cycle_days": 0,
+    "max_stock": np.inf,
 }
 
 NUMERIC_COLUMNS = [
@@ -44,8 +46,10 @@ NUMERIC_COLUMNS = [
     "avg_daily_sales",
     "lead_time_days",
     "safety_days",
+    "review_cycle_days",
     "order_unit",
     "min_order_qty",
+    "max_stock",
     "unit_cost",
     "priority_weight",
 ]
@@ -153,6 +157,16 @@ COLUMN_ALIASES: Dict[str, str] = {
     "min_order_qty": "min_order_qty",
     "最小発注数": "min_order_qty",
     "最低発注数": "min_order_qty",
+    "reviewcycledays": "review_cycle_days",
+    "review_cycle_days": "review_cycle_days",
+    "reviewcycle": "review_cycle_days",
+    "発注周期": "review_cycle_days",
+    "見直し周期": "review_cycle_days",
+    "定期発注周期": "review_cycle_days",
+    "orderlot": "order_unit",
+    "order_lot": "order_unit",
+    "発注ロット": "order_unit",
+    "ロット": "order_unit",
     "unitcost": "unit_cost",
     "unit_cost": "unit_cost",
     "cost": "unit_cost",
@@ -164,9 +178,15 @@ COLUMN_ALIASES: Dict[str, str] = {
     "importance": "priority_weight",
     "重要度": "priority_weight",
     "supplier": "supplier",
+    "supplier_id": "supplier",
     "仕入先": "supplier",
     "仕入れ先": "supplier",
     "サプライヤー": "supplier",
+    "仕入先id": "supplier",
+    "maxstock": "max_stock",
+    "max_stock": "max_stock",
+    "在庫上限": "max_stock",
+    "最大在庫": "max_stock",
     "category": "category",
     "カテゴリ": "category",
     "category_name": "category",
@@ -216,6 +236,7 @@ TABLE_COLUMNS = [
     "product_name",
     "category",
     "supplier",
+    "order_policy_label",
     "current_stock",
     "avg_daily_sales",
     "forecast_daily_sales",
@@ -223,18 +244,24 @@ TABLE_COLUMNS = [
     "demand_basis_value",
     "lead_time_days",
     "safety_days",
+    "review_cycle_days",
+    "planning_target_label",
+    "planning_target_value",
     "reorder_point",
+    "target_stock",
     "base_recommended_order",
     "adjusted_order",
     "estimated_order_cost",
     "days_left",
     "priority_score",
     "need_order",
+    "no_order_reason",
 ]
 
 PLAN_COLUMNS = [
     "product_name",
     "supplier",
+    "order_policy_label",
     "adjusted_order",
     "estimated_order_cost",
     "days_left",
@@ -246,12 +273,28 @@ ORDER_CANDIDATE_COLUMNS = [
     "product_name",
     "category",
     "supplier",
+    "order_policy_label",
     "forecast_daily_sales",
     "demand_basis_label",
+    "planning_target_label",
+    "planning_target_value",
     "adjusted_order",
     "estimated_order_cost",
     "days_left",
     "priority_score",
+]
+
+NO_ORDER_COLUMNS = [
+    "product_name",
+    "category",
+    "supplier",
+    "order_policy_label",
+    "current_stock",
+    "avg_daily_sales",
+    "lead_time_days",
+    "review_cycle_days",
+    "days_left",
+    "no_order_reason",
 ]
 
 RISK_COLUMNS = [
@@ -261,6 +304,7 @@ RISK_COLUMNS = [
     "current_stock",
     "days_left",
     "lead_time_days",
+    "review_cycle_days",
     "adjusted_order",
     "priority_score",
     "risk_level",
@@ -274,6 +318,7 @@ OVERSTOCK_COLUMNS = [
     "avg_daily_sales",
     "forecast_daily_sales",
     "days_left",
+    "planning_target_value",
     "reorder_point",
     "excess_stock",
     "overstock_note",
@@ -298,21 +343,23 @@ FORECAST_COEFFICIENT_COLUMNS = [
     "coefficient",
 ]
 
-SAMPLE_CSV = """product_id,product_name,current_stock,avg_daily_sales,lead_time_days,safety_days,order_unit,min_order_qty,unit_cost,priority_weight,supplier,category,location
-1,ミネラルウォーター,20,3.5,5,3,12,24,110,1.2,飲料仕入先A,飲料,tokyo
-2,お茶,8,2.0,7,2,24,24,95,1.1,飲料仕入先A,飲料,tokyo
-3,コーヒー,50,1.2,10,5,10,20,380,1.4,飲料仕入先B,飲料,tokyo
-4,カップ麺,5,4.0,3,2,12,24,180,1.6,食品仕入先C,食品,tokyo
-5,スポーツドリンク,80,1.0,4,2,24,24,140,0.8,飲料仕入先A,飲料,tokyo
+SAMPLE_CSV = """product_id,product_name,current_stock,avg_daily_sales,lead_time_days,safety_days,review_cycle_days,order_lot,min_order_qty,max_stock,unit_cost,priority_weight,supplier_id,category,location
+1,ミネラルウォーター,20,3.5,5,3,7,12,24,60,110,1.2,飲料仕入先A,飲料,tokyo
+2,お茶,8,2.0,7,2,7,24,24,50,95,1.1,飲料仕入先A,飲料,tokyo
+3,コーヒー,50,1.2,10,5,14,10,20,80,380,1.4,飲料仕入先B,飲料,tokyo
+4,カップ麺,5,4.0,3,2,7,12,24,70,180,1.6,食品仕入先C,食品,tokyo
+5,スポーツドリンク,80,1.0,4,2,7,24,24,90,140,0.8,飲料仕入先A,飲料,tokyo
 """
 
 WELCOME_MESSAGE = """在庫アシスタントです。こんな聞き方ができます。
 
-- 「今日のおすすめ発注を見せて」
+- 「次回のおすすめ発注を見せて」
 - 「予算30000円で発注案を出して」
 - 「欠品リスクが高い商品を見せて」
 - 「過剰在庫を教えて」
 - 「お茶の発注理由は？」
+- 「お茶の予測はなぜ上がっているの？」
+- 「需要予測を使うと何が変わるの？」
 - 「安全在庫を5日にしたらどうなる？」
 - 「明日の予測需要が高い商品を見せて」
 """
@@ -501,16 +548,24 @@ def load_csv_with_fallbacks(uploaded_file: Any, expected_columns: Optional[List[
     raise ValueError("CSVを読み込めませんでした。試した条件: " + " / ".join(errors[:6]))
 
 
-def validate_columns(df: pd.DataFrame) -> List[str]:
+def get_required_columns(order_policy: str) -> List[str]:
+    """発注方式に応じた必須列を返す。"""
+    if order_policy == "定期発注":
+        return REQUIRED_COLUMNS + ["review_cycle_days"]
+    return REQUIRED_COLUMNS
+
+
+def validate_columns(df: pd.DataFrame, order_policy: str) -> List[str]:
     """必要な列がすべて含まれているかをチェックする。"""
-    return [col for col in REQUIRED_COLUMNS if col not in df.columns]
+    return [col for col in get_required_columns(order_policy) if col not in df.columns]
 
 
-def validate_required_values(df: pd.DataFrame) -> List[str]:
+def validate_required_values(df: pd.DataFrame, order_policy: str) -> List[str]:
     """必須列の空欄を行単位でチェックする。"""
     errors: List[str] = []
+    required_columns = get_required_columns(order_policy)
 
-    for column in REQUIRED_COLUMNS:
+    for column in required_columns:
         if column not in df.columns:
             continue
 
@@ -566,8 +621,10 @@ def sanitize_numeric_values(df: pd.DataFrame) -> pd.DataFrame:
     df["avg_daily_sales"] = df["avg_daily_sales"].clip(lower=0)
     df["lead_time_days"] = df["lead_time_days"].clip(lower=0)
     df["safety_days"] = df["safety_days"].clip(lower=0)
+    df["review_cycle_days"] = df["review_cycle_days"].clip(lower=0)
     df["order_unit"] = df["order_unit"].clip(lower=1)
     df["min_order_qty"] = df["min_order_qty"].clip(lower=0)
+    df["max_stock"] = df["max_stock"].where(df["max_stock"].isna(), df["max_stock"].clip(lower=0))
     df["unit_cost"] = df["unit_cost"].clip(lower=0)
     df["priority_weight"] = df["priority_weight"].clip(lower=0.1)
     return df
@@ -932,25 +989,55 @@ def generate_demand_forecast(
     }
 
 
-def round_order_quantity(base_qty: float, order_unit: float, min_order_qty: float) -> int:
-    """発注単位と最小発注数を考慮して発注量を丸める。"""
+def adjust_order_quantity(
+    base_qty: float,
+    current_stock: float,
+    order_unit: float,
+    min_order_qty: float,
+    max_stock: float,
+) -> Tuple[int, str]:
+    """発注単位、最小発注数、在庫上限を考慮して発注量を調整する。"""
     if base_qty <= 0:
-        return 0
+        return 0, "target_met"
 
-    adjusted_qty = max(base_qty, min_order_qty)
-    rounded_qty = math.ceil(adjusted_qty / order_unit) * order_unit
-    return int(rounded_qty)
+    if not pd.isna(max_stock) and current_stock >= max_stock:
+        return 0, "max_stock_reached"
+
+    rounded_qty = int(math.ceil(base_qty))
+
+    if min_order_qty > 0 and rounded_qty < min_order_qty:
+        return 0, "below_min_order_qty"
+
+    rounded_qty = int(math.ceil(rounded_qty / order_unit) * order_unit)
+
+    if not pd.isna(max_stock):
+        max_additional = max(int(math.floor(max_stock - current_stock)), 0)
+        if max_additional <= 0:
+            return 0, "max_stock_reached"
+        rounded_qty = min(rounded_qty, max_additional)
+        rounded_qty = int(math.floor(rounded_qty / order_unit) * order_unit)
+        if rounded_qty <= 0:
+            return 0, "max_stock_reached"
+        if min_order_qty > 0 and rounded_qty < min_order_qty:
+            return 0, "max_stock_reached"
+
+    return rounded_qty, "planned"
 
 
 def calculate_priority_score(df: pd.DataFrame, demand_column: str = "demand_basis_value") -> pd.Series:
     """欠品リスクと重要度を組み合わせた優先度スコアを計算する。"""
     days_divisor = np.maximum(df["days_left"].replace(np.inf, 9999), 0.5)
-    urgency_component = np.maximum(df["reorder_point"] - df["current_stock"], 0) + df[demand_column]
+    urgency_component = np.maximum(df["planning_target_value"] - df["current_stock"], 0) + df[demand_column]
     lead_time_component = 1 + (df["lead_time_days"] / np.maximum(df["lead_time_days"].max(), 1))
     return (df["priority_weight"] * urgency_component * lead_time_component) / days_divisor
 
 
-def calculate_inventory_metrics(df: pd.DataFrame, demand_column: str = "avg_daily_sales", demand_label: str = "実績平均") -> pd.DataFrame:
+def calculate_inventory_metrics(
+    df: pd.DataFrame,
+    demand_column: str = "avg_daily_sales",
+    demand_label: str = "実績平均",
+    order_policy: str = "都度発注",
+) -> pd.DataFrame:
     """在庫関連指標と発注条件をまとめて計算する。"""
     df = df.copy()
     if demand_column not in df.columns:
@@ -959,19 +1046,36 @@ def calculate_inventory_metrics(df: pd.DataFrame, demand_column: str = "avg_dail
     df["forecast_daily_sales"] = df.get("forecast_daily_sales", pd.Series(np.nan, index=df.index))
     df["forecast_model_group"] = df.get("forecast_model_group", pd.Series("", index=df.index)).fillna("")
     df["forecast_reason_summary"] = df.get("forecast_reason_summary", pd.Series("", index=df.index)).fillna("")
+    df["review_cycle_days"] = df.get("review_cycle_days", pd.Series(0, index=df.index)).fillna(0).clip(lower=0)
+    df["max_stock"] = df.get("max_stock", pd.Series(np.inf, index=df.index)).fillna(np.inf)
+    df["order_policy_label"] = order_policy
     df["demand_basis_label"] = demand_label
     df["demand_basis_value"] = df[demand_column].fillna(df["avg_daily_sales"]).clip(lower=0)
     df["safety_stock"] = df["demand_basis_value"] * df["safety_days"]
     df["reorder_point"] = df["demand_basis_value"] * df["lead_time_days"] + df["safety_stock"]
+    df["target_cover_days"] = df["lead_time_days"] + df["review_cycle_days"] + df["safety_days"]
+    df["target_stock"] = df["demand_basis_value"] * df["target_cover_days"]
+    if order_policy == "定期発注":
+        df["planning_target_label"] = "目標在庫量"
+        df["planning_target_value"] = df["target_stock"]
+    else:
+        df["planning_target_label"] = "発注点"
+        df["planning_target_value"] = df["reorder_point"]
     df["base_recommended_order"] = np.ceil(
-        np.maximum(0, df["reorder_point"] - df["current_stock"])
+        np.maximum(0, df["planning_target_value"] - df["current_stock"])
     ).astype(int)
-    df["adjusted_order"] = [
-        round_order_quantity(base_qty, order_unit, min_order_qty)
-        for base_qty, order_unit, min_order_qty in zip(
-            df["base_recommended_order"], df["order_unit"], df["min_order_qty"]
+    adjustment_results = [
+        adjust_order_quantity(base_qty, current_stock, order_unit, min_order_qty, max_stock)
+        for base_qty, current_stock, order_unit, min_order_qty, max_stock in zip(
+            df["base_recommended_order"],
+            df["current_stock"],
+            df["order_unit"],
+            df["min_order_qty"],
+            df["max_stock"],
         )
     ]
+    df["adjusted_order"] = [qty for qty, _ in adjustment_results]
+    df["order_adjustment_reason"] = [reason for _, reason in adjustment_results]
     df["days_left"] = np.where(
         df["demand_basis_value"] == 0,
         np.inf,
@@ -980,20 +1084,37 @@ def calculate_inventory_metrics(df: pd.DataFrame, demand_column: str = "avg_dail
     df["need_order"] = df["adjusted_order"] > 0
     df["estimated_order_cost"] = df["adjusted_order"] * df["unit_cost"]
     df["priority_score"] = calculate_priority_score(df, "demand_basis_value").round(2)
+    threshold_days = np.where(order_policy == "定期発注", df["lead_time_days"] + df["review_cycle_days"], df["lead_time_days"])
     df["risk_level"] = np.select(
         [
-            df["days_left"] <= df["lead_time_days"],
-            df["days_left"] <= (df["lead_time_days"] + df["safety_days"]),
+            df["days_left"] <= threshold_days,
+            df["days_left"] <= (threshold_days + df["safety_days"]),
         ],
         ["高", "中"],
         default="低",
     )
-    df["excess_stock"] = np.maximum(0, df["current_stock"] - df["reorder_point"] * 1.5).round(1)
+    df["excess_stock"] = np.maximum(0, df["current_stock"] - df["planning_target_value"] * 1.5).round(1)
+    df["excess_stock_cost"] = (df["excess_stock"] * df["unit_cost"]).round(0)
     df["overstock_note"] = np.where(
-        (df["days_left"] > (df["lead_time_days"] + df["safety_days"] + 14))
-        & (df["current_stock"] > df["reorder_point"]),
+        (df["days_left"] > (threshold_days + df["safety_days"] + 14))
+        & (df["current_stock"] > df["planning_target_value"]),
         "在庫日数が長く、過剰在庫の可能性があります",
         "",
+    )
+    df["no_order_reason"] = np.select(
+        [
+            df["need_order"],
+            df["order_adjustment_reason"] == "below_min_order_qty",
+            df["order_adjustment_reason"] == "max_stock_reached",
+            df["demand_basis_value"] == 0,
+        ],
+        [
+            "",
+            "最低発注数に満たないため発注見送り",
+            "在庫上限を超えるため発注見送り",
+            "需要が発生していないため現時点では発注不要",
+        ],
+        default="現在庫で次回判断タイミングまで十分に持つため発注不要",
     )
     return df
 
@@ -1005,7 +1126,16 @@ def prepare_display_df(df: pd.DataFrame, columns: List[str]) -> pd.DataFrame:
         display_df["days_left"] = display_df["days_left"].apply(format_days_left)
     if "estimated_order_cost" in display_df.columns:
         display_df["estimated_order_cost"] = display_df["estimated_order_cost"].map(lambda x: f"{int(x):,}円")
-    for numeric_column in ["avg_daily_sales", "forecast_daily_sales", "demand_basis_value", "forecast_diff"]:
+    for numeric_column in [
+        "avg_daily_sales",
+        "forecast_daily_sales",
+        "demand_basis_value",
+        "forecast_diff",
+        "reorder_point",
+        "target_stock",
+        "planning_target_value",
+        "review_cycle_days",
+    ]:
         if numeric_column in display_df.columns:
             display_df[numeric_column] = display_df[numeric_column].apply(
                 lambda value: "" if pd.isna(value) else round(float(value), 2)
@@ -1075,11 +1205,17 @@ def build_summary_message(metrics_df: pd.DataFrame, order_needed_df: pd.DataFram
     total_order_cost = int(order_needed_df["estimated_order_cost"].sum())
     optimized_cost = int(optimized_df["estimated_order_cost"].sum())
     most_urgent = metrics_df.iloc[0]
+    overstock_cost = int(metrics_df.get("excess_stock_cost", pd.Series(dtype=float)).sum()) if "excess_stock_cost" in metrics_df.columns else 0
+    high_risk_count = int((metrics_df["risk_level"] == "高").sum()) if "risk_level" in metrics_df.columns else 0
+
+    policy_label = str(metrics_df["order_policy_label"].iloc[0]) if "order_policy_label" in metrics_df.columns else "都度発注"
 
     return (
         f"全 {total_items} 商品のうち、発注が必要なのは {total_order_items} 商品です。"
+        f" 現在の発注方式は {policy_label} です。"
         f" 発注候補の総額は {total_order_cost:,}円で、現在の予算条件で採用されているのは"
         f" {len(optimized_df)} 件、合計 {optimized_cost:,}円です。"
+        f" 見直し余地のある過剰在庫候補額は {overstock_cost:,}円、欠品高リスクは {high_risk_count} 商品です。"
         f" もっとも在庫切れが近いのは {most_urgent['product_name']} で、残りは"
         f" {format_days_left(float(most_urgent['days_left']))} です。"
     )
@@ -1092,25 +1228,40 @@ def build_product_message(row: pd.Series) -> str:
     forecast_text = ""
     if not pd.isna(row.get("forecast_daily_sales", np.nan)):
         forecast_text = f" 需要予測は {float(row['forecast_daily_sales']):.2f} です。"
+    planning_text = (
+        f"{row['planning_target_label']}は {row['planning_target_value']:.1f} です。"
+        if row.get("order_policy_label") == "定期発注"
+        else f"発注点は {row['planning_target_value']:.1f} です。"
+    )
     return (
         f"{row['product_name']} は仕入先 {row['supplier']} の商品です。現在在庫は {row['current_stock']}、"
         f" 実績平均日販は {row['avg_daily_sales']}、計算に使っている需要は {demand_basis_text}、"
-        f" 発注点は {row['reorder_point']:.1f} です。{forecast_text}"
+        f" 発注方式は {row.get('order_policy_label', '都度発注')} で、{planning_text}{forecast_text}"
         f" 基本推奨発注数は {int(row['base_recommended_order'])} 個ですが、発注単位 {int(row['order_unit'])}"
         f" と最小発注数 {int(row['min_order_qty'])} を考慮すると {int(row['adjusted_order'])} 個になります。"
         f" 推定発注金額は {int(row['estimated_order_cost']):,}円、在庫が持つ見込みは"
         f" {format_days_left(float(row['days_left']))} で、{need_order_text}。"
+        f" {row.get('no_order_reason', '')}"
     )
 
 
 def build_reason_message(row: pd.Series) -> str:
     """発注理由の説明を作る。"""
+    if row.get("order_policy_label") == "定期発注":
+        target_expression = (
+            f"目標在庫量は 需要 {row['demand_basis_value']:.2f} × "
+            f"(リードタイム {row['lead_time_days']}日 + 発注周期 {row['review_cycle_days']}日 + 安全在庫日数 {row['safety_days']}日)"
+            f" = {row['target_stock']:.1f} です。"
+        )
+    else:
+        target_expression = (
+            f"発注点は 需要 {row['demand_basis_value']:.2f} × リードタイム {row['lead_time_days']}日 + "
+            f"安全在庫 {row['safety_stock']:.1f} = {row['reorder_point']:.1f} です。"
+        )
     return (
         f"{row['product_name']} の安全在庫は {row['demand_basis_label']}日販 {row['demand_basis_value']:.2f} × {row['safety_days']}日 = "
-        f"{row['safety_stock']:.1f} です。発注点は 平均販売数 {row['avg_daily_sales']} × "
-        f"ではなく、計算対象の需要 {row['demand_basis_value']:.2f} × "
-        f"リードタイム {row['lead_time_days']}日 + 安全在庫 {row['safety_stock']:.1f} = "
-        f"{row['reorder_point']:.1f} です。そこから基本推奨発注数は {int(row['base_recommended_order'])} 個になり、"
+        f"{row['safety_stock']:.1f} です。発注方式は {row.get('order_policy_label', '都度発注')} で、{target_expression}"
+        f" そこから基本推奨発注数は {int(row['base_recommended_order'])} 個になり、"
         f" 発注単位 {int(row['order_unit'])} と最小発注数 {int(row['min_order_qty'])} を反映した最終候補は"
         f" {int(row['adjusted_order'])} 個です。優先度スコアは {row['priority_score']:.2f} です。"
         f" {row.get('forecast_reason_summary', '')}"
@@ -1152,8 +1303,9 @@ def build_help_message() -> str:
     """サポートしている質問例を返す。"""
     return (
         "まだその質問には対応しきれていません。"
-        " まずは「今日のおすすめ発注」「予算30000円で発注案」「欠品リスク」「過剰在庫」"
-        " 「商品名の状況」「発注理由」「安全在庫を5日にしたらどうなる？」のように聞いてみてください。"
+        " まずは「次回のおすすめ発注」「予算30000円で発注案」「欠品リスク」「過剰在庫」"
+        " 「商品名の状況」「発注理由」「この予測はなぜ？」「需要予測を使うと何が変わる？」"
+        " 「安全在庫を5日にしたらどうなる？」のように聞いてみてください。"
     )
 
 
@@ -1190,13 +1342,18 @@ def serialize_product_row(row: pd.Series) -> Dict[str, Any]:
     return {
         "product_name": str(row["product_name"]),
         "supplier": str(row["supplier"]),
+        "order_policy_label": str(row.get("order_policy_label", "都度発注")),
         "current_stock": float(row["current_stock"]),
         "avg_daily_sales": float(row["avg_daily_sales"]),
         "forecast_daily_sales": None if pd.isna(row.get("forecast_daily_sales", np.nan)) else round(float(row["forecast_daily_sales"]), 2),
         "lead_time_days": float(row["lead_time_days"]),
         "safety_days": float(row["safety_days"]),
+        "review_cycle_days": float(row.get("review_cycle_days", 0)),
         "safety_stock": round(float(row["safety_stock"]), 1),
         "reorder_point": round(float(row["reorder_point"]), 1),
+        "target_stock": round(float(row.get("target_stock", row["reorder_point"])), 1),
+        "planning_target_label": str(row.get("planning_target_label", "発注点")),
+        "planning_target_value": round(float(row.get("planning_target_value", row["reorder_point"])), 1),
         "base_recommended_order": int(row["base_recommended_order"]),
         "adjusted_order": int(row["adjusted_order"]),
         "estimated_order_cost": int(row["estimated_order_cost"]),
@@ -1210,6 +1367,7 @@ def serialize_product_row(row: pd.Series) -> Dict[str, Any]:
         "forecast_model_group": str(row.get("forecast_model_group", "")),
         "overstock_note": str(row["overstock_note"]),
         "forecast_reason_summary": str(row.get("forecast_reason_summary", "")),
+        "no_order_reason": str(row.get("no_order_reason", "")),
     }
 
 
@@ -1296,7 +1454,8 @@ def execute_inventory_tool(
         simulated_input["safety_days"] = safety_days
         demand_column = "selected_daily_sales" if "selected_daily_sales" in simulated_input.columns else "avg_daily_sales"
         demand_label = str(simulated_input["demand_basis_label"].iloc[0]) if "demand_basis_label" in simulated_input.columns else "実績平均"
-        simulated_df = calculate_inventory_metrics(simulated_input, demand_column, demand_label)
+        order_policy = str(metrics_df["order_policy_label"].iloc[0]) if "order_policy_label" in metrics_df.columns else "都度発注"
+        simulated_df = calculate_inventory_metrics(simulated_input, demand_column, demand_label, order_policy)
         simulated_df = simulated_df.sort_values(["priority_score", "days_left"], ascending=[False, True]).reset_index(drop=True)
         simulated_order_df = simulated_df[simulated_df["need_order"]].copy().reset_index(drop=True)
         return json.dumps(
@@ -1522,9 +1681,49 @@ def answer_inventory_question(
     """チャットメッセージに対する回答を生成する。"""
     normalized = message.strip().lower()
     product_name = extract_product_name(message, metrics_df)
+    forecast_available = metrics_df["forecast_daily_sales"].notna().any()
+
+    if any(keyword in normalized for keyword in ["何が変わる", "どう変わる", "予測を使うと", "予測使うと"]):
+        if not forecast_available:
+            return {"content": "まだ需要予測は適用されていません。販売履歴CSVと外部要因CSVの両方をアップロードすると、実績平均との違いを確認できます。", "dataframe": None}
+        changed_df = metrics_df[
+            metrics_df["forecast_daily_sales"].notna()
+            & (metrics_df["forecast_daily_sales"].round(2) != metrics_df["avg_daily_sales"].round(2))
+        ].copy()
+        if changed_df.empty:
+            return {"content": "今回は予測値と実績平均日販に大きな差がなく、発注判断への影響は小さめです。", "dataframe": None}
+        changed_df["forecast_impact"] = (changed_df["forecast_daily_sales"] - changed_df["avg_daily_sales"]).abs()
+        changed_df = changed_df.sort_values("forecast_impact", ascending=False)
+        top_row = changed_df.iloc[0]
+        return {
+            "content": (
+                f"需要予測を使うと、{len(changed_df)} 商品で実績平均と違う需要を見込めます。"
+                f" 特に {top_row['product_name']} は実績平均 {top_row['avg_daily_sales']:.2f} に対して"
+                f" 予測 {top_row['forecast_daily_sales']:.2f} なので、発注判断が変わりやすい商品です。"
+            ),
+            "dataframe": prepare_display_df(changed_df.head(10), FORECAST_PRODUCT_COLUMNS),
+        }
+
+    if product_name is not None and any(keyword in normalized for keyword in ["予測", "需要", "天気", "なぜ", "理由"]):
+        row = metrics_df.loc[metrics_df["product_name"] == product_name].iloc[0]
+        if not forecast_available:
+            return {"content": "まだ需要予測は適用されていません。販売履歴CSVと外部要因CSVをアップロードすると確認できます。", "dataframe": None}
+        if pd.isna(row.get("forecast_daily_sales", np.nan)):
+            return {"content": f"{product_name} は履歴や外部要因が不足しているため、今回は予測を作れていません。実績平均日販を使って判断しています。", "dataframe": None}
+        reason_text = row.get("forecast_reason_summary", "") or "主な要因はまだ整理できていません。"
+        return {
+            "content": (
+                f"{product_name} の予測日販は {float(row['forecast_daily_sales']):.2f} です。"
+                f" 実績平均日販 {float(row['avg_daily_sales']):.2f} と比べると差は {float(row['forecast_diff']):+.2f} で、"
+                f"{reason_text} 発注計算では {row['demand_basis_label']} を使っています。"
+            ),
+            "dataframe": prepare_display_df(
+                metrics_df.loc[metrics_df["product_name"] == product_name],
+                TABLE_COLUMNS,
+            ),
+        }
 
     if any(keyword in normalized for keyword in ["予測", "需要", "天気"]):
-        forecast_available = metrics_df["forecast_daily_sales"].notna().any()
         if not forecast_available:
             return {"content": "まだ需要予測は適用されていません。販売履歴CSVと外部要因CSVをアップロードすると確認できます。", "dataframe": None}
         forecast_df = metrics_df[metrics_df["forecast_daily_sales"].notna()].copy()
@@ -1553,11 +1752,11 @@ def answer_inventory_question(
             "dataframe": prepare_display_df(optimized_budget_df, PLAN_COLUMNS) if not optimized_budget_df.empty else None,
         }
 
-    if any(keyword in normalized for keyword in ["今日", "おすすめ発注", "推奨発注"]):
+    if any(keyword in normalized for keyword in ["今日", "次回", "おすすめ発注", "推奨発注"]):
         if optimized_df.empty:
             return {"content": "現在の条件では採用された発注候補はありません。", "dataframe": None}
         return {
-            "content": f"現在の条件で採用されているおすすめ発注は {len(optimized_df)} 件です。",
+            "content": f"現在の条件で採用されている次回発注案は {len(optimized_df)} 件です。",
             "dataframe": prepare_display_df(optimized_df, PLAN_COLUMNS),
         }
 
@@ -1588,7 +1787,8 @@ def answer_inventory_question(
         simulated_input["safety_days"] = safety_days
         demand_column = "selected_daily_sales" if "selected_daily_sales" in simulated_input.columns else "avg_daily_sales"
         demand_label = str(metrics_df["demand_basis_label"].iloc[0]) if "demand_basis_label" in metrics_df.columns else "実績平均"
-        simulated_df = calculate_inventory_metrics(simulated_input, demand_column, demand_label)
+        order_policy = str(metrics_df["order_policy_label"].iloc[0]) if "order_policy_label" in metrics_df.columns else "都度発注"
+        simulated_df = calculate_inventory_metrics(simulated_input, demand_column, demand_label, order_policy)
         simulated_df = simulated_df.sort_values(["priority_score", "days_left"], ascending=[False, True]).reset_index(drop=True)
         simulated_order_df = simulated_df[simulated_df["need_order"]].copy()
         return {
@@ -1615,23 +1815,56 @@ def render_summary(
     metrics_df: pd.DataFrame,
     order_needed_df: pd.DataFrame,
     optimized_df: pd.DataFrame,
+    risk_df: pd.DataFrame,
+    overstock_df: pd.DataFrame,
     budget_limit: Optional[float],
 ) -> None:
     """画面上部のKPIを表示する。"""
-    total_items = len(metrics_df)
+    review_candidate_count = len(
+        metrics_df[
+            metrics_df["need_order"] | (metrics_df["risk_level"].isin(["高", "中"])) | (metrics_df["overstock_note"] != "")
+        ]
+    )
     total_order_items = len(order_needed_df)
     optimized_cost = int(optimized_df["estimated_order_cost"].sum()) if not optimized_df.empty else 0
+    overstock_cost = int(overstock_df["excess_stock_cost"].sum()) if not overstock_df.empty else 0
+    high_risk_count = int((risk_df["risk_level"] == "高").sum()) if not risk_df.empty else 0
     budget_text = "上限なし" if budget_limit is None or budget_limit <= 0 else f"{int(budget_limit):,}円"
     forecast_items = int(metrics_df["forecast_daily_sales"].notna().sum()) if "forecast_daily_sales" in metrics_df.columns else 0
+    policy_label = str(metrics_df["order_policy_label"].iloc[0]) if "order_policy_label" in metrics_df.columns else "都度発注"
 
     st.subheader("サマリー")
-    col1, col2, col3, col4, col5 = st.columns(5)
-    col1.metric("商品数", total_items)
-    col2.metric("発注が必要な商品数", total_order_items)
-    col3.metric("採用された発注候補", len(optimized_df))
-    col4.metric("採用済み発注額", f"{optimized_cost:,}円")
-    col5.metric("予測適用商品数", forecast_items)
-    st.caption(f"現在の予算設定: {budget_text}")
+    col1, col2, col3, col4 = st.columns(4)
+    col1.metric("見直し候補", f"{review_candidate_count}商品")
+    col2.metric("欠品高リスク", f"{high_risk_count}商品")
+    col3.metric("過剰在庫候補額", f"{overstock_cost:,}円")
+    col4.metric("今回の発注予定額", f"{optimized_cost:,}円")
+    st.caption(
+        f"現在の発注方式: {policy_label} / 発注対象: {total_order_items}商品 / 予測適用: {forecast_items}商品 / 予算設定: {budget_text}"
+    )
+
+
+def build_forecast_plain_summary(forecast_df: pd.DataFrame) -> str:
+    """予測結果を現場向けの短い文章にまとめる。"""
+    available_df = forecast_df[forecast_df["forecast_daily_sales"].notna()].copy()
+    if available_df.empty:
+        return "今回は需要予測を使える商品がまだありません。"
+
+    increased_df = available_df[available_df["forecast_diff"] > 0].sort_values("forecast_diff", ascending=False)
+    decreased_df = available_df[available_df["forecast_diff"] < 0].sort_values("forecast_diff")
+
+    summary = [f"需要予測を使えるのは {len(available_df)} 商品です。"]
+    if not increased_df.empty:
+        top_up = increased_df.iloc[0]
+        summary.append(
+            f"実績平均より需要が増えそうなのは {len(increased_df)} 商品で、特に {top_up['product_name']} が上振れしそうです。"
+        )
+    if not decreased_df.empty:
+        top_down = decreased_df.iloc[0]
+        summary.append(
+            f"一方で、{top_down['product_name']} は実績平均より落ち着く見込みです。"
+        )
+    return " ".join(summary)
 
 
 def inject_pop_ui_styles() -> None:
@@ -2020,7 +2253,7 @@ def render_pop_hero() -> None:
             <div class="hero-title">在庫の確認と発注判断を、<br>ひとつの画面でシンプルに。</div>
             <div class="hero-text">
                 会話、最適化結果、一覧テーブルを切り替えながら、
-                今の在庫状況とおすすめ発注を落ち着いて確認できます。
+                今の在庫状況と次回発注計画を落ち着いて確認できます。
             </div>
         </div>
         """,
@@ -2033,18 +2266,20 @@ def render_planning_tab(
     skipped_df: pd.DataFrame,
     risk_df: pd.DataFrame,
     overstock_df: pd.DataFrame,
+    order_policy: str,
 ) -> None:
     """最適化結果を表示する。"""
-    st.subheader("今日のおすすめ発注")
+    st.subheader("次回のおすすめ発注")
+    st.caption(f"現在の発注方式: {order_policy}")
     if optimized_df.empty:
         st.info("現在の条件では採用された発注候補はありません。")
     else:
         display_df = prepare_display_df(optimized_df, PLAN_COLUMNS)
         st.dataframe(display_df, use_container_width=True)
         st.download_button(
-            "おすすめ発注案をCSVダウンロード",
+            "発注計画をCSVダウンロード",
             data=build_download_bytes(optimized_df, PLAN_COLUMNS),
-            file_name="optimized_order_plan.csv",
+            file_name="next_order_plan.csv",
             mime="text/csv",
         )
 
@@ -2067,12 +2302,12 @@ def render_planning_tab(
         st.dataframe(prepare_display_df(overstock_df, OVERSTOCK_COLUMNS), use_container_width=True)
 
 
-def render_tables(metrics_df: pd.DataFrame, order_needed_df: pd.DataFrame) -> None:
+def render_tables(metrics_df: pd.DataFrame, order_needed_df: pd.DataFrame, no_order_df: pd.DataFrame) -> None:
     """一覧テーブルを表示する。"""
     st.subheader("全商品一覧")
     st.dataframe(prepare_display_df(metrics_df, TABLE_COLUMNS), use_container_width=True)
 
-    st.subheader("発注候補一覧")
+    st.subheader("次回発注候補一覧")
     if order_needed_df.empty:
         st.info("発注が必要な商品はありません。")
     else:
@@ -2081,9 +2316,15 @@ def render_tables(metrics_df: pd.DataFrame, order_needed_df: pd.DataFrame) -> No
         st.download_button(
             "発注候補をCSVダウンロード",
             data=build_download_bytes(order_needed_df, ORDER_CANDIDATE_COLUMNS),
-            file_name="recommended_orders.csv",
+            file_name="next_order_plan.csv",
             mime="text/csv",
         )
+
+    st.subheader("発注不要商品一覧")
+    if no_order_df.empty:
+        st.info("発注不要の商品はありません。")
+    else:
+        st.dataframe(prepare_display_df(no_order_df, NO_ORDER_COLUMNS), use_container_width=True)
 
 
 def render_forecast_tab(
@@ -2092,7 +2333,7 @@ def render_forecast_tab(
     forecast_date: pd.Timestamp,
 ) -> None:
     """需要予測の概要を表示する。"""
-    st.subheader("需要予測")
+    st.subheader("需要予測の見方")
     st.caption(f"予測対象日: {forecast_date.date()} / 発注計算モード: {forecast_mode}")
     st.write(forecast_result["message"])
 
@@ -2101,16 +2342,19 @@ def render_forecast_tab(
 
     forecast_df = forecast_result.get("forecast_df")
     if isinstance(forecast_df, pd.DataFrame) and not forecast_df.empty:
+        st.info(build_forecast_plain_summary(forecast_df))
+        st.caption("詳しい理由は、チャットで「お茶の予測はなぜ？」「需要予測を使うと何が変わる？」のように聞けます。")
         st.dataframe(prepare_display_df(forecast_df, FORECAST_PRODUCT_COLUMNS), use_container_width=True)
     else:
         st.info("予測一覧はまだありません。")
 
     coefficients_df = forecast_result.get("coefficients_df")
-    st.subheader("モデル係数")
-    if isinstance(coefficients_df, pd.DataFrame) and not coefficients_df.empty:
-        st.dataframe(coefficients_df[FORECAST_COEFFICIENT_COLUMNS], use_container_width=True)
-    else:
-        st.info("係数を表示できるモデルはまだ作成されていません。")
+    with st.expander("係数の詳細を見る", expanded=False):
+        st.caption("担当者向けの通常利用では見なくても大丈夫です。モデルの確認や説明資料づくりに使えます。")
+        if isinstance(coefficients_df, pd.DataFrame) and not coefficients_df.empty:
+            st.dataframe(coefficients_df[FORECAST_COEFFICIENT_COLUMNS], use_container_width=True)
+        else:
+            st.info("係数を表示できるモデルはまだ作成されていません。")
 
 
 def render_chat_section(
@@ -2126,9 +2370,8 @@ def render_chat_section(
     """チャットUIを表示する。"""
     initialize_chat_state()
 
-    st.divider()
-    st.subheader("チャット")
-    st.caption("気になる商品名や予算を入れると、その条件で確認できます。")
+    st.subheader("チャットで相談")
+    st.caption("気になる商品名や予算、予測の意味をそのまま入力すると、次に見るべき内容を返します。")
 
     for message in st.session_state.chat_messages:
         with st.chat_message(message["role"]):
@@ -2176,22 +2419,24 @@ def main() -> None:
     st.set_page_config(page_title="在庫発注最適化アシスタント", layout="wide")
     inject_pop_ui_styles()
 
-    st.title("在庫発注最適化アシスタント")
+    st.title("在庫発注計画アシスタント")
     st.write(
-        "CSVから在庫状況を読み取り、発注単位・最小発注数・原価・重要度・予算を考慮したおすすめ発注案を確認できます。"
+        "CSVを読み込むと、次回の発注判断を一覧とチャットの両方で確認できます。需要予測は必要なときだけ追加して使えます。"
     )
     render_pop_hero()
 
-    uploaded_file = st.file_uploader("CSVファイルを選択してください", type="csv")
-    sales_history_file = st.file_uploader("販売履歴CSV（任意）", type="csv")
-    external_factors_file = st.file_uploader("外部要因CSV（任意）", type="csv")
+    uploaded_file = st.file_uploader("在庫CSVを選択してください", type="csv")
+    st.caption("まずは在庫CSVだけで使い始められます。需要予測を使いたい場合のみ、下の追加CSVを読み込みます。")
+    with st.expander("需要予測を使う場合の追加CSV", expanded=False):
+        sales_history_file = st.file_uploader("販売履歴CSV", type="csv")
+        external_factors_file = st.file_uploader("外部要因CSV", type="csv")
 
     if uploaded_file is None:
         reset_chat_state()
         st.info("まずはCSVをアップロードしてください。")
         st.subheader("サンプルCSV形式")
         st.code(SAMPLE_CSV, language="csv")
-        st.caption("任意列として order_unit, min_order_qty, unit_cost, priority_weight, supplier, category, location も使えます。")
+        st.caption("任意列として order_lot, min_order_qty, max_stock, unit_cost, priority_weight, supplier_id, category, location も使えます。")
         return
 
     current_file_id = "|".join(
@@ -2213,7 +2458,14 @@ def main() -> None:
         st.error(f"CSVの読み込み中にエラーが発生しました: {exc}")
         return
 
-    missing_columns = validate_columns(df)
+    order_policy = st.sidebar.radio(
+        "発注方式",
+        options=["都度発注", "定期発注"],
+        horizontal=True,
+        help="都度発注は発注点ベース、定期発注は次回見直しまで持たせる目標在庫量ベースで計算します。",
+    )
+
+    missing_columns = validate_columns(df, order_policy)
     if missing_columns:
         st.error("必須列が不足しています。以下の列を含めてください:")
         st.write(missing_columns)
@@ -2227,7 +2479,7 @@ def main() -> None:
             st.write(f"- {message}")
         return
 
-    required_value_errors = validate_required_values(df)
+    required_value_errors = validate_required_values(df, order_policy)
     if required_value_errors:
         st.error("必須項目の空欄が見つかりました。CSVの該当行を確認してください。")
         for message in required_value_errors:
@@ -2321,20 +2573,23 @@ def main() -> None:
         help="0 を指定すると予算上限なしで全候補を採用します。",
     )
     api_key_default = get_openai_api_key_default()
-    openai_api_key = st.sidebar.text_input(
-        "OpenAI APIキー",
-        value=api_key_default,
-        type="password",
-        help="設定するとチャットで GPT の関数呼び出しを使えます。未設定時は従来のルールベース回答です。",
-    ).strip()
-    st.session_state.openai_api_key = openai_api_key
-    use_llm_chat = st.sidebar.toggle(
-        "GPTチャットを使う",
-        value=bool(openai_api_key),
-        disabled=not bool(openai_api_key),
-        help="APIキー設定後に有効化できます。",
-    )
+    with st.sidebar.expander("チャットの詳細設定", expanded=False):
+        openai_api_key = st.text_input(
+            "OpenAI APIキー",
+            value=api_key_default,
+            type="password",
+            help="設定するとチャットで GPT の関数呼び出しを使えます。未設定時は従来のルールベース回答です。",
+        ).strip()
+        st.session_state.openai_api_key = openai_api_key
+        use_llm_chat = st.toggle(
+            "GPTチャットを使う",
+            value=bool(openai_api_key),
+            disabled=not bool(openai_api_key),
+            help="APIキー設定後に有効化できます。",
+        )
     st.sidebar.caption("CSVに任意列がない場合は、発注単位1、最小発注数0、原価1000円、重要度1.0で計算します。")
+    if order_policy == "定期発注":
+        st.sidebar.caption("定期発注では review_cycle_days を使って、次回見直しまで持つ目標在庫量を計算します。")
 
     filtered_df = df[df["supplier"].astype(str).isin(selected_suppliers)].copy()
     if filtered_df.empty:
@@ -2386,31 +2641,21 @@ def main() -> None:
         filtered_df["selected_daily_sales"] = filtered_df["avg_daily_sales"].astype(float)
 
     try:
-        metrics_df = calculate_inventory_metrics(filtered_df, "selected_daily_sales", forecast_mode)
+        metrics_df = calculate_inventory_metrics(filtered_df, "selected_daily_sales", forecast_mode, order_policy)
     except Exception as exc:
         st.error(f"在庫指標の計算中に予期せぬエラーが発生しました: {exc}")
         return
 
     metrics_df = metrics_df.sort_values(["priority_score", "days_left"], ascending=[False, True]).reset_index(drop=True)
     order_needed_df = metrics_df[metrics_df["need_order"]].copy().reset_index(drop=True)
+    no_order_df = metrics_df[~metrics_df["need_order"]].copy().reset_index(drop=True)
     optimized_df, skipped_df = optimize_order_plan(order_needed_df, budget_limit)
     risk_df = metrics_df[metrics_df["risk_level"].isin(["高", "中"])].copy()
     risk_df = risk_df.sort_values(["priority_score", "days_left"], ascending=[False, True]).reset_index(drop=True)
     overstock_df = metrics_df[metrics_df["overstock_note"] != ""].copy()
     overstock_df = overstock_df.sort_values("excess_stock", ascending=False).reset_index(drop=True)
 
-    render_summary(metrics_df, order_needed_df, optimized_df, budget_limit)
-
-    planning_tab, table_tab, forecast_tab = st.tabs(["最適化", "一覧", "予測"])
-
-    with planning_tab:
-        render_planning_tab(optimized_df, skipped_df, risk_df, overstock_df)
-
-    with table_tab:
-        render_tables(metrics_df, order_needed_df)
-
-    with forecast_tab:
-        render_forecast_tab(forecast_result, forecast_mode, forecast_date)
+    render_summary(metrics_df, order_needed_df, optimized_df, risk_df, overstock_df, budget_limit)
 
     render_chat_section(
         filtered_df,
@@ -2422,6 +2667,17 @@ def main() -> None:
         use_llm_chat,
         openai_api_key,
     )
+
+    planning_tab, table_tab, forecast_tab = st.tabs(["おすすめ発注", "一覧", "需要予測"])
+
+    with planning_tab:
+        render_planning_tab(optimized_df, skipped_df, risk_df, overstock_df, order_policy)
+
+    with table_tab:
+        render_tables(metrics_df, order_needed_df, no_order_df)
+
+    with forecast_tab:
+        render_forecast_tab(forecast_result, forecast_mode, forecast_date)
 
 
 if __name__ == "__main__":
