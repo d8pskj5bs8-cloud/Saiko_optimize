@@ -1248,23 +1248,6 @@ def inject_pop_ui_styles() -> None:
             margin-bottom: 0.9rem;
         }
 
-        .hero-points {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 0.55rem;
-            margin-top: 0.35rem;
-        }
-
-        .hero-pill {
-            background: white;
-            border: 1px solid var(--line);
-            border-radius: 999px;
-            padding: 0.42rem 0.8rem;
-            color: var(--text-main) !important;
-            font-weight: 600;
-            font-size: 0.92rem;
-        }
-
         .chat-shell {
             background: linear-gradient(180deg, rgba(255, 249, 239, 0.92) 0%, rgba(255, 255, 255, 0.94) 100%);
             border: 1px solid rgba(163, 98, 48, 0.16);
@@ -1303,6 +1286,31 @@ def inject_pop_ui_styles() -> None:
         [data-testid="stNumberInput"] input::placeholder {
             color: #8f6e57 !important;
         }
+
+        [data-testid="stFileUploader"] div,
+        [data-testid="stFileUploaderDropzone"] div,
+        [data-testid="stFileUploaderDropzoneInstructions"],
+        [data-testid="stFileUploaderFileName"] {
+            background: transparent !important;
+            color: var(--text-main) !important;
+        }
+
+        [data-testid="stExpander"] details,
+        [data-testid="stExpander"] summary {
+            background: #fffaf3 !important;
+            color: var(--text-main) !important;
+        }
+
+        [data-testid="stCodeBlock"] {
+            background: #fffaf3 !important;
+            border: 1px solid rgba(163, 98, 48, 0.18) !important;
+            border-radius: 18px !important;
+        }
+
+        [data-testid="stCodeBlock"] * {
+            background: transparent !important;
+            color: #4a2b18 !important;
+        }
         </style>
         """,
         unsafe_allow_html=True,
@@ -1319,11 +1327,6 @@ def render_pop_hero() -> None:
             <div class="hero-text">
                 会話、最適化結果、一覧テーブルを切り替えながら、
                 今の在庫状況とおすすめ発注を落ち着いて確認できます。
-            </div>
-            <div class="hero-points">
-                <span class="hero-pill">会話で確認</span>
-                <span class="hero-pill">おすすめ発注</span>
-                <span class="hero-pill">在庫一覧</span>
             </div>
         </div>
         """,
