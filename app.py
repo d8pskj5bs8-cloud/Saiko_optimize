@@ -1923,6 +1923,88 @@ def inject_pop_ui_styles() -> None:
             background: rgba(255, 255, 255, 0.82) !important;
             color: var(--text-main) !important;
         }
+
+        [data-testid="stSidebar"] [data-testid="stRadio"] > div {
+            gap: 0.55rem;
+        }
+
+        [data-testid="stSidebar"] [data-testid="stRadio"] div[role="radiogroup"] {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 0.55rem;
+        }
+
+        [data-testid="stSidebar"] [data-testid="stRadio"] div[role="radiogroup"] label {
+            margin: 0;
+            min-height: 72px;
+            padding: 0.8rem 0.75rem;
+            border: 1px solid rgba(86, 112, 134, 0.18);
+            border-radius: 16px;
+            background: rgba(255, 255, 255, 0.78);
+            box-shadow: 0 8px 20px rgba(58, 89, 112, 0.06);
+            transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease, background 0.18s ease;
+        }
+
+        [data-testid="stSidebar"] [data-testid="stRadio"] div[role="radiogroup"] label:hover {
+            transform: translateY(-1px);
+            border-color: rgba(47, 128, 196, 0.35);
+            box-shadow: 0 12px 24px rgba(58, 89, 112, 0.10);
+        }
+
+        [data-testid="stSidebar"] [data-testid="stRadio"] div[role="radiogroup"] label[data-checked="true"] {
+            border-color: rgba(47, 128, 196, 0.95);
+            background: linear-gradient(180deg, rgba(219, 238, 254, 0.96) 0%, rgba(240, 248, 255, 0.98) 100%);
+            box-shadow: 0 14px 28px rgba(47, 128, 196, 0.16);
+        }
+
+        [data-testid="stSidebar"] [data-testid="stRadio"] div[role="radiogroup"] label p {
+            margin: 0;
+            font-size: 0.96rem;
+            font-weight: 700;
+            line-height: 1.35;
+            text-align: center;
+            color: var(--text-main);
+        }
+
+        [data-testid="stSidebar"] [data-testid="stRadio"] div[role="radiogroup"] label[data-checked="true"] p {
+            color: var(--accent-strong);
+        }
+
+        .demand-mode-indicator {
+            margin-top: 0.45rem;
+            padding: 0.8rem 0.9rem;
+            border-radius: 14px;
+            border: 1px solid rgba(47, 128, 196, 0.22);
+            background: linear-gradient(180deg, rgba(255, 255, 255, 0.95) 0%, rgba(244, 249, 253, 0.98) 100%);
+            box-shadow: 0 10px 24px rgba(58, 89, 112, 0.07);
+        }
+
+        .demand-mode-indicator-label {
+            font-size: 0.74rem;
+            font-weight: 700;
+            letter-spacing: 0.04em;
+            color: var(--text-soft);
+        }
+
+        .demand-mode-indicator-value {
+            margin-top: 0.18rem;
+            font-size: 1rem;
+            font-weight: 800;
+            color: var(--accent-strong);
+        }
+
+        .demand-mode-indicator-note {
+            margin-top: 0.24rem;
+            font-size: 0.82rem;
+            line-height: 1.45;
+            color: var(--text-soft);
+        }
+
+        @media (max-width: 1100px) {
+            [data-testid="stSidebar"] [data-testid="stRadio"] div[role="radiogroup"] {
+                grid-template-columns: 1fr;
+            }
+        }
         </style>
         """,
         unsafe_allow_html=True,
@@ -2203,7 +2285,23 @@ def main() -> None:
     forecast_mode = st.sidebar.radio(
         "発注計算に使う需要",
         options=["実績平均", "需要予測", "大きい方"],
+        horizontal=True,
         help="需要予測が使えない商品は自動で実績平均にフォールバックします。",
+    )
+    demand_mode_notes = {
+        "実績平均": "通常の平均日販をそのまま使います。",
+        "需要予測": "予測値を優先し、使えない商品は実績平均に戻します。",
+        "大きい方": "実績平均と予測値を比べて、大きい方を採用します。",
+    }
+    st.sidebar.markdown(
+        f"""
+        <div class="demand-mode-indicator">
+            <div class="demand-mode-indicator-label">現在の選択</div>
+            <div class="demand-mode-indicator-value">{forecast_mode}</div>
+            <div class="demand-mode-indicator-note">{demand_mode_notes[forecast_mode]}</div>
+        </div>
+        """,
+        unsafe_allow_html=True,
     )
     forecast_date = pd.Timestamp(
         st.sidebar.date_input(
