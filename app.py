@@ -822,9 +822,15 @@ def generate_demand_forecast(
     latest_history = training_df.sort_values("date").groupby("product_id").tail(7)
     future_external = external_df[external_df["date"] == forecast_date].copy()
     if future_external.empty:
+        available_dates = external_df["date"].dropna().sort_values()
+        available_range_text = ""
+        if not available_dates.empty:
+            available_range_text = (
+                f" 利用可能な日付は {available_dates.iloc[0].date()} 〜 {available_dates.iloc[-1].date()} です。"
+            )
         return {
             "enabled": False,
-            "message": f"{forecast_date.date()} の外部要因データが無いため、需要予測を使えません。",
+            "message": f"{forecast_date.date()} の外部要因データが無いため、需要予測を使えません。{available_range_text}",
             "forecast_df": pd.DataFrame(),
             "coefficients_df": pd.DataFrame(),
             "notes": notes,
@@ -2154,6 +2160,40 @@ def main() -> None:
             for note in normalization_notes:
                 st.write(f"- {note}")
 
+    history_df: Optional[pd.DataFrame] = None
+    external_df: Optional[pd.DataFrame] = None
+    forecast_extra_notes: List[str] = []
+
+    if sales_history_file is not None and external_factors_file is not None:
+        history_df, history_notes, history_errors = prepare_forecast_history_df(sales_history_file)
+        external_df, external_notes, external_errors = prepare_forecast_external_df(external_factors_file)
+        forecast_extra_notes.extend(history_notes + external_notes)
+
+        if history_errors:
+            st.error("販売履歴CSVに問題があります。")
+            for message in history_errors:
+                st.write(f"- {message}")
+            return
+        if external_errors:
+            st.error("外部要因CSVに問題があります。")
+            for message in external_errors:
+                st.write(f"- {message}")
+            return
+
+    default_forecast_date = pd.Timestamp.today().normalize() + pd.Timedelta(days=1)
+    forecast_date_input_args: Dict[str, Any] = {"value": default_forecast_date.date()}
+    if external_df is not None and not external_df.empty:
+        available_dates = external_df["date"].dropna().sort_values()
+        if not available_dates.empty:
+            earliest_external_date = pd.Timestamp(available_dates.iloc[0]).normalize()
+            latest_external_date = pd.Timestamp(available_dates.iloc[-1]).normalize()
+            default_forecast_date = latest_external_date
+            forecast_date_input_args = {
+                "value": default_forecast_date.date(),
+                "min_value": earliest_external_date.date(),
+                "max_value": latest_external_date.date(),
+            }
+
     supplier_options = sorted(df["supplier"].astype(str).unique().tolist())
     selected_suppliers = st.sidebar.multiselect(
         "対象の仕入先",
@@ -2168,9 +2208,13 @@ def main() -> None:
     forecast_date = pd.Timestamp(
         st.sidebar.date_input(
             "予測対象日",
-            value=(pd.Timestamp.today().normalize() + pd.Timedelta(days=1)).date(),
+            **forecast_date_input_args,
         )
     )
+    if external_df is not None and not external_df.empty:
+        st.sidebar.caption(
+            f"外部要因CSVで選べる予測日は {earliest_external_date.date()} 〜 {latest_external_date.date()} です。"
+        )
     budget_limit = st.sidebar.number_input(
         "予算上限（円）",
         min_value=0,
@@ -2208,21 +2252,7 @@ def main() -> None:
     }
 
     if sales_history_file is not None and external_factors_file is not None:
-        history_df, history_notes, history_errors = prepare_forecast_history_df(sales_history_file)
-        external_df, external_notes, external_errors = prepare_forecast_external_df(external_factors_file)
-        normalization_notes.extend(history_notes + external_notes)
-
-        if history_errors:
-            st.error("販売履歴CSVに問題があります。")
-            for message in history_errors:
-                st.write(f"- {message}")
-            return
-        if external_errors:
-            st.error("外部要因CSVに問題があります。")
-            for message in external_errors:
-                st.write(f"- {message}")
-            return
-
+        normalization_notes.extend(forecast_extra_notes)
         if history_df is not None and external_df is not None:
             forecast_result = generate_demand_forecast(filtered_df, history_df, external_df, forecast_date)
             forecast_df = forecast_result.get("forecast_df")
