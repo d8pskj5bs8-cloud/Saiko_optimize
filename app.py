@@ -1073,21 +1073,35 @@ def inject_pop_ui_styles() -> None:
         """
         <style>
         :root {
-            --bg-main: linear-gradient(180deg, #fffef9 0%, #fff6e5 52%, #ffeede 100%);
-            --panel: rgba(255, 255, 255, 0.92);
-            --panel-strong: #fff7ef;
-            --line: rgba(163, 98, 48, 0.22);
-            --text-main: #3f2616;
-            --text-soft: #63422e;
-            --accent: #ea6a3e;
-            --accent-strong: #c84f26;
-            --accent-pale: #ffe1d8;
-            --mint: #dff7ea;
-            --yellow: #fff1b8;
+            --bg-main: linear-gradient(180deg, #f7fafc 0%, #eef4f8 52%, #e8f0f6 100%);
+            --panel: rgba(255, 255, 255, 0.96);
+            --panel-strong: #f8fbfd;
+            --line: rgba(86, 112, 134, 0.18);
+            --text-main: #20313f;
+            --text-soft: #506474;
+            --accent: #2f80c4;
+            --accent-strong: #24679d;
+            --accent-pale: #dbeefe;
+            --mint: #dff5ef;
+            --yellow: #fff2bf;
+            --shadow-soft: 0 10px 28px rgba(58, 89, 112, 0.08);
+            --shadow-strong: 0 18px 40px rgba(58, 89, 112, 0.10);
         }
 
         .stApp {
             background: var(--bg-main);
+        }
+
+        [data-testid="stAppViewContainer"] {
+            background:
+                radial-gradient(circle at top left, rgba(255, 255, 255, 0.92) 0%, rgba(255, 255, 255, 0) 34%),
+                linear-gradient(180deg, #f7fafc 0%, #eef4f8 52%, #e8f0f6 100%);
+        }
+
+        [data-testid="stHeader"] {
+            background: rgba(247, 250, 252, 0.86);
+            border-bottom: 1px solid rgba(86, 112, 134, 0.10);
+            backdrop-filter: blur(8px);
         }
 
         .block-container {
@@ -1124,7 +1138,7 @@ def inject_pop_ui_styles() -> None:
         }
 
         [data-testid="stSidebar"] {
-            background: linear-gradient(180deg, #fff7ef 0%, #fff1dc 100%);
+            background: linear-gradient(180deg, #f9fcfe 0%, #eef5fa 100%);
             border-left: 1px solid var(--line);
         }
 
@@ -1143,7 +1157,7 @@ def inject_pop_ui_styles() -> None:
             background: var(--panel);
             border: 1px solid var(--line);
             border-radius: 20px;
-            box-shadow: 0 10px 30px rgba(164, 102, 58, 0.08);
+            box-shadow: var(--shadow-soft);
         }
 
         div[data-testid="stChatMessage"] {
@@ -1152,8 +1166,8 @@ def inject_pop_ui_styles() -> None:
 
         [data-testid="stFileUploader"] section,
         [data-testid="stFileUploaderDropzone"] {
-            background: linear-gradient(180deg, #fffaf1 0%, #fff4e6 100%) !important;
-            border: 1px dashed rgba(163, 98, 48, 0.28) !important;
+            background: linear-gradient(180deg, #fdfefe 0%, #f2f7fb 100%) !important;
+            border: 1px dashed rgba(86, 112, 134, 0.28) !important;
             color: var(--text-main) !important;
         }
 
@@ -1168,25 +1182,25 @@ def inject_pop_ui_styles() -> None:
         .stCode,
         pre,
         code {
-            background: #fffaf3 !important;
-            color: #4a2b18 !important;
+            background: #f7fafc !important;
+            color: #244158 !important;
         }
 
         pre {
-            border: 1px solid rgba(163, 98, 48, 0.18) !important;
+            border: 1px solid rgba(86, 112, 134, 0.16) !important;
             border-radius: 18px !important;
         }
 
         .stCodeBlock code,
         .stCode code,
         pre code {
-            color: #4a2b18 !important;
+            color: #244158 !important;
         }
 
         div[role="radiogroup"] {
             gap: 0.7rem;
             padding: 0.35rem;
-            background: rgba(255, 255, 255, 0.72);
+            background: rgba(255, 255, 255, 0.86);
             border: 1px solid var(--line);
             border-radius: 999px;
         }
@@ -1199,33 +1213,33 @@ def inject_pop_ui_styles() -> None:
         div[role="radiogroup"] label > div {
             border-radius: 999px;
             padding: 0.55rem 1rem;
-            background: rgba(255, 255, 255, 0.52);
-            border: 1px solid rgba(163, 98, 48, 0.12);
+            background: rgba(255, 255, 255, 0.88);
+            border: 1px solid rgba(86, 112, 134, 0.10);
             color: var(--text-main) !important;
             font-weight: 700;
         }
 
         div[role="radiogroup"] label[data-checked="true"] > div {
-            background: linear-gradient(135deg, #ffd68a 0%, #ffbe73 100%);
-            color: #4a2b18 !important;
-            border-color: rgba(200, 79, 38, 0.28);
-            box-shadow: 0 8px 18px rgba(200, 79, 38, 0.16);
+            background: linear-gradient(135deg, #dcefff 0%, #bddfff 100%);
+            color: #1f4461 !important;
+            border-color: rgba(47, 128, 196, 0.26);
+            box-shadow: 0 8px 18px rgba(47, 128, 196, 0.14);
         }
 
         .hero-card {
             background:
-                radial-gradient(circle at top left, rgba(255,255,255,0.95) 0%, rgba(255,255,255,0.8) 34%, rgba(255,240,221,0.86) 100%);
+                radial-gradient(circle at top left, rgba(255,255,255,0.98) 0%, rgba(255,255,255,0.88) 34%, rgba(228,241,251,0.94) 100%);
             border: 1px solid var(--line);
             border-radius: 28px;
             padding: 1.4rem 1.5rem 1.2rem;
-            box-shadow: 0 18px 40px rgba(164, 102, 58, 0.12);
+            box-shadow: var(--shadow-strong);
             margin-bottom: 1rem;
         }
 
         .hero-badge {
             display: inline-block;
-            background: var(--yellow);
-            color: #6f4300 !important;
+            background: #e8f4ff;
+            color: #2a628f !important;
             border-radius: 999px;
             padding: 0.35rem 0.8rem;
             font-size: 0.84rem;
@@ -1249,34 +1263,35 @@ def inject_pop_ui_styles() -> None:
         }
 
         .chat-shell {
-            background: linear-gradient(180deg, rgba(255, 249, 239, 0.92) 0%, rgba(255, 255, 255, 0.94) 100%);
-            border: 1px solid rgba(163, 98, 48, 0.16);
+            background: linear-gradient(180deg, rgba(248, 251, 253, 0.96) 0%, rgba(255, 255, 255, 0.98) 100%);
+            border: 1px solid rgba(86, 112, 134, 0.14);
             border-radius: 24px;
             padding: 1rem 1rem 0.35rem;
             margin-bottom: 0.85rem;
-            box-shadow: 0 14px 30px rgba(164, 102, 58, 0.08);
+            box-shadow: var(--shadow-soft);
         }
 
         .stButton > button, .stDownloadButton > button {
             border-radius: 999px;
             border: none;
-            background: linear-gradient(135deg, var(--accent) 0%, #f08d43 100%);
-            color: #fff8f2;
+            background: linear-gradient(135deg, var(--accent) 0%, #58a6dd 100%);
+            color: #f8fcff;
             font-weight: 700;
             padding: 0.6rem 1rem;
-            box-shadow: 0 10px 20px rgba(200, 79, 38, 0.18);
+            box-shadow: 0 10px 20px rgba(47, 128, 196, 0.18);
         }
 
         .stButton > button:hover, .stDownloadButton > button:hover {
-            background: linear-gradient(135deg, var(--accent-strong) 0%, #df7b32 100%);
-            color: #fffefb;
+            background: linear-gradient(135deg, var(--accent-strong) 0%, #438fcb 100%);
+            color: #ffffff;
         }
 
         [data-testid="stChatInput"] textarea,
         [data-testid="stTextInput"] input,
         [data-testid="stNumberInput"] input {
             color: var(--text-main) !important;
-            background: rgba(255, 255, 255, 0.95) !important;
+            background: rgba(255, 255, 255, 0.98) !important;
+            border: 1px solid rgba(86, 112, 134, 0.18) !important;
             caret-color: var(--text-main) !important;
             pointer-events: auto !important;
         }
@@ -1284,7 +1299,7 @@ def inject_pop_ui_styles() -> None:
         [data-testid="stChatInput"] textarea::placeholder,
         [data-testid="stTextInput"] input::placeholder,
         [data-testid="stNumberInput"] input::placeholder {
-            color: #8f6e57 !important;
+            color: #8091a0 !important;
         }
 
         [data-testid="stFileUploader"] div,
@@ -1297,19 +1312,39 @@ def inject_pop_ui_styles() -> None:
 
         [data-testid="stExpander"] details,
         [data-testid="stExpander"] summary {
-            background: #fffaf3 !important;
+            background: #f8fbfd !important;
             color: var(--text-main) !important;
         }
 
         [data-testid="stCodeBlock"] {
-            background: #fffaf3 !important;
-            border: 1px solid rgba(163, 98, 48, 0.18) !important;
+            background: #f7fafc !important;
+            border: 1px solid rgba(86, 112, 134, 0.16) !important;
             border-radius: 18px !important;
         }
 
         [data-testid="stCodeBlock"] * {
             background: transparent !important;
-            color: #4a2b18 !important;
+            color: #244158 !important;
+        }
+
+        [data-baseweb="tab-list"] {
+            gap: 0.4rem;
+            background: rgba(255, 255, 255, 0.65);
+            border: 1px solid rgba(86, 112, 134, 0.12);
+            border-radius: 999px;
+            padding: 0.35rem;
+        }
+
+        [data-baseweb="tab"] {
+            background: transparent !important;
+            color: var(--text-soft) !important;
+            border-radius: 999px !important;
+        }
+
+        [aria-selected="true"][data-baseweb="tab"] {
+            background: #ffffff !important;
+            color: var(--text-main) !important;
+            box-shadow: 0 6px 16px rgba(58, 89, 112, 0.10);
         }
         </style>
         """,
