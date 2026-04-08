@@ -418,23 +418,38 @@ def inject_pop_ui_styles() -> None:
             margin: 0;
             min-height: 72px;
             padding: 0.8rem 0.75rem;
-            border: 1px solid rgba(86, 112, 134, 0.18);
+            border: 1px solid rgba(114, 171, 152, 0.34);
             border-radius: 16px;
-            background: rgba(255, 255, 255, 0.78);
-            box-shadow: 0 8px 20px rgba(58, 89, 112, 0.06);
-            transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease, background 0.18s ease;
+            background: linear-gradient(180deg, rgba(245, 252, 248, 0.96) 0%, rgba(231, 246, 238, 0.98) 100%);
+            box-shadow:
+                0 4px 0 rgba(170, 210, 195, 0.92),
+                0 10px 20px rgba(122, 177, 156, 0.12);
+            transition: transform 0.12s ease, box-shadow 0.12s ease, border-color 0.12s ease, background 0.12s ease;
         }
 
         [data-testid="stSidebar"] [data-testid="stRadio"] div[role="radiogroup"] label:hover {
             transform: translateY(-1px);
-            border-color: rgba(47, 128, 196, 0.35);
-            box-shadow: 0 12px 24px rgba(58, 89, 112, 0.10);
+            border-color: rgba(94, 160, 138, 0.48);
+            background: linear-gradient(180deg, rgba(250, 254, 252, 0.98) 0%, rgba(236, 249, 242, 1) 100%);
+            box-shadow:
+                0 5px 0 rgba(170, 210, 195, 0.92),
+                0 14px 24px rgba(122, 177, 156, 0.16);
         }
 
         [data-testid="stSidebar"] [data-testid="stRadio"] div[role="radiogroup"] label[data-checked="true"] {
-            border-color: rgba(47, 128, 196, 0.95);
-            background: linear-gradient(180deg, rgba(219, 238, 254, 0.96) 0%, rgba(240, 248, 255, 0.98) 100%);
-            box-shadow: 0 14px 28px rgba(47, 128, 196, 0.16);
+            transform: translateY(3px);
+            border-color: rgba(72, 140, 118, 0.90);
+            background: linear-gradient(180deg, rgba(208, 238, 224, 0.98) 0%, rgba(191, 229, 212, 1) 100%);
+            box-shadow:
+                0 1px 0 rgba(126, 183, 163, 0.96),
+                0 6px 12px rgba(122, 177, 156, 0.16);
+        }
+
+        [data-testid="stSidebar"] [data-testid="stRadio"] div[role="radiogroup"] label:active {
+            transform: translateY(3px);
+            box-shadow:
+                0 1px 0 rgba(126, 183, 163, 0.96),
+                0 5px 10px rgba(122, 177, 156, 0.16);
         }
 
         [data-testid="stSidebar"] [data-testid="stRadio"] div[role="radiogroup"] label p {
@@ -447,7 +462,7 @@ def inject_pop_ui_styles() -> None:
         }
 
         [data-testid="stSidebar"] [data-testid="stRadio"] div[role="radiogroup"] label[data-checked="true"] p {
-            color: var(--accent-strong);
+            color: #1f5a49;
         }
 
         .demand-mode-indicator {
