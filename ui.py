@@ -1,3 +1,4 @@
+from io import BytesIO
 from typing import Any, Dict, Optional
 
 import pandas as pd
@@ -14,7 +15,7 @@ from constants import (
     RISK_COLUMNS,
     TABLE_COLUMNS,
 )
-from inventory import build_download_bytes, prepare_display_df
+from inventory import adjust_order_quantity, build_download_bytes, prepare_display_df
 
 
 def render_summary(
@@ -523,23 +524,259 @@ def render_pop_hero() -> None:
     )
 
 
+def _sanitize_sheet_name(value: str, used_names: set[str]) -> str:
+    """Excel シート名の制約に合わせて重複しない名前を返す。"""
+    invalid_chars = ['\\', '/', '*', '?', ':', '[', ']']
+    sanitized = str(value).strip()
+    for char in invalid_chars:
+        sanitized = sanitized.replace(char, "_")
+    sanitized = sanitized[:31] or "sheet"
+
+    candidate = sanitized
+    suffix = 1
+    while candidate in used_names:
+        suffix_text = f"_{suffix}"
+        candidate = f"{sanitized[: 31 - len(suffix_text)]}{suffix_text}"
+        suffix += 1
+    used_names.add(candidate)
+    return candidate
+
+
+def _format_schedule_date(value: pd.Timestamp) -> str:
+    """日付を画像イメージに近い形式で整形する。"""
+    weekdays = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
+    ts = pd.Timestamp(value)
+    return f"{ts.strftime('%Y-%m-%d')} ({weekdays[ts.weekday()]})"
+
+
+def build_product_order_sheet(product_row: pd.Series, forecast_date: pd.Timestamp, periods: int = 4) -> pd.DataFrame:
+    """商品ごとの簡易発注シミュレーション表を作る。"""
+    review_cycle_days = int(max(float(product_row.get("review_cycle_days", 0) or 0), 1))
+    lead_time_days = int(max(float(product_row.get("lead_time_days", 0) or 0), 0))
+    safety_days = float(max(product_row.get("safety_days", 0) or 0, 0))
+    demand_per_day = float(max(product_row.get("demand_basis_value", 0) or 0, 0))
+    order_unit = float(max(product_row.get("order_unit", 1) or 1, 1))
+    min_order_qty = float(max(product_row.get("min_order_qty", 0) or 0, 0))
+    raw_max_stock = product_row.get("max_stock", float("inf"))
+    max_stock = float("nan") if pd.isna(raw_max_stock) or raw_max_stock == float("inf") else float(raw_max_stock)
+    current_stock = float(max(product_row.get("current_stock", 0) or 0, 0))
+
+    cycle_stock = demand_per_day * (lead_time_days + review_cycle_days)
+    safety_stock = demand_per_day * safety_days
+    standard_stock = cycle_stock + safety_stock
+
+    review_dates = [pd.Timestamp(forecast_date).normalize() + pd.Timedelta(days=review_cycle_days * idx) for idx in range(periods)]
+    scheduled_arrivals: Dict[pd.Timestamp, float] = {}
+    ending_stock = current_stock
+    rows = []
+
+    for review_date in review_dates:
+        arrival_qty = float(scheduled_arrivals.pop(review_date, 0))
+        available_stock = ending_stock + arrival_qty
+        cycle_demand = demand_per_day * review_cycle_days
+        base_order_qty = max(0.0, standard_stock - available_stock)
+        order_qty, _ = adjust_order_quantity(
+            base_order_qty,
+            available_stock,
+            order_unit,
+            min_order_qty,
+            max_stock,
+        )
+
+        arrival_date = review_date + pd.Timedelta(days=lead_time_days)
+        if order_qty > 0:
+            scheduled_arrivals[arrival_date] = scheduled_arrivals.get(arrival_date, 0.0) + float(order_qty)
+
+        ending_stock = max(available_stock - cycle_demand, 0.0)
+        rows.append(
+            {
+                "日付": review_date.date().isoformat(),
+                "在庫数": round(available_stock, 1),
+                "需要予測": round(demand_per_day, 1),
+                "サイクル在庫": round(cycle_stock, 1),
+                "安全在庫": round(safety_stock, 1),
+                "標準在庫": round(standard_stock, 1),
+                "発注日": "☑" if order_qty > 0 else "",
+                "推奨発注量": int(order_qty),
+                "入荷数": int(arrival_qty),
+                "欠品": "☑" if available_stock < cycle_demand and cycle_demand > 0 else "",
+            }
+        )
+
+    return pd.DataFrame(rows)
+
+
+def build_order_sheet_workbook_bytes(metrics_df: pd.DataFrame, forecast_date: pd.Timestamp) -> bytes:
+    """商品ごとの発注計画を Excel の複数シートで出力する。"""
+    output = BytesIO()
+    used_sheet_names: set[str] = set()
+
+    with pd.ExcelWriter(output, engine="openpyxl") as writer:
+        summary_rows = []
+        sorted_metrics_df = metrics_df.sort_values(["need_order", "priority_score", "product_name"], ascending=[False, False, True]).reset_index(drop=True)
+
+        for _, row in sorted_metrics_df.iterrows():
+            schedule_df = build_product_order_sheet(row, forecast_date)
+            next_order_row = schedule_df[schedule_df["推奨発注量"] > 0].head(1)
+            next_order_date = next_order_row.iloc[0]["日付"] if not next_order_row.empty else ""
+            next_order_qty = int(next_order_row.iloc[0]["推奨発注量"]) if not next_order_row.empty else 0
+
+            summary_rows.append(
+                {
+                    "商品ID": row["product_id"],
+                    "商品名": row["product_name"],
+                    "仕入先": row["supplier"],
+                    "カテゴリ": row["category"],
+                    "現在庫": round(float(row["current_stock"]), 1),
+                    "需要基準": row["demand_basis_label"],
+                    "需要基準値": round(float(row["demand_basis_value"]), 2),
+                    "次回発注日": next_order_date,
+                    "次回発注量": next_order_qty,
+                    "発注点": round(float(row["reorder_point"]), 1),
+                    "目標在庫量": round(float(row["target_stock"]), 1),
+                    "発注要否": "要" if bool(row["need_order"]) else "不要",
+                }
+            )
+
+            sheet_name = _sanitize_sheet_name(str(row["product_name"]), used_sheet_names)
+            detail_start_row = 0
+            detail_df = pd.DataFrame(
+                [
+                    ["商品ID", row["product_id"]],
+                    ["商品名", row["product_name"]],
+                    ["仕入先", row["supplier"]],
+                    ["カテゴリ", row["category"]],
+                    ["現在庫", round(float(row["current_stock"]), 1)],
+                    ["需要基準", row["demand_basis_label"]],
+                    ["需要基準値", round(float(row["demand_basis_value"]), 2)],
+                    ["発注点", round(float(row["reorder_point"]), 1)],
+                    ["目標在庫量", round(float(row["target_stock"]), 1)],
+                    ["次回発注日", next_order_date],
+                    ["次回発注量", next_order_qty],
+                ],
+                columns=["項目", "値"],
+            )
+            detail_df.to_excel(writer, sheet_name=sheet_name, index=False, startrow=detail_start_row)
+            schedule_df.to_excel(writer, sheet_name=sheet_name, index=False, startrow=len(detail_df) + 3)
+
+            worksheet = writer.sheets[sheet_name]
+            worksheet.column_dimensions["A"].width = 18
+            worksheet.column_dimensions["B"].width = 20
+            for column_letter in ["C", "D", "E", "F", "G", "H", "I", "J"]:
+                worksheet.column_dimensions[column_letter].width = 14
+
+        summary_df = pd.DataFrame(summary_rows)
+        summary_df.to_excel(writer, sheet_name="一覧", index=False)
+        summary_sheet = writer.sheets["一覧"]
+        for column_letter in ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L"]:
+            summary_sheet.column_dimensions[column_letter].width = 18
+
+    output.seek(0)
+    return output.getvalue()
+
+
+def render_order_sheet_tab(metrics_df: pd.DataFrame, forecast_date: pd.Timestamp, order_policy: str) -> None:
+    """商品ごとの発注計画シートを表示する。"""
+    st.subheader("発注計画シート")
+    st.caption(f"現在の発注方式: {order_policy} / 1商品ずつシート形式で確認できます。")
+
+    if metrics_df.empty:
+        st.info("表示できる商品がありません。")
+        return
+
+    try:
+        workbook_bytes = build_order_sheet_workbook_bytes(metrics_df, forecast_date)
+    except ImportError:
+        workbook_bytes = b""
+        st.warning("Excel出力には `openpyxl` のインストールが必要です。`pip install -r requirements.txt` 後に使えます。")
+    else:
+        st.download_button(
+            "全商品をExcelでダウンロード",
+            data=workbook_bytes,
+            file_name="order_sheets.xlsx",
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        )
+
+    sorted_metrics_df = metrics_df.sort_values(["need_order", "priority_score", "product_name"], ascending=[False, False, True]).reset_index(drop=True)
+    product_options = sorted_metrics_df.apply(
+        lambda row: f"{row['product_name']} | {row['supplier']} | 在庫 {round(float(row['current_stock']), 1)}",
+        axis=1,
+    ).tolist()
+    selected_label = st.selectbox("商品を選択", product_options)
+    selected_row = sorted_metrics_df.iloc[product_options.index(selected_label)]
+
+    schedule_df = build_product_order_sheet(selected_row, forecast_date)
+    next_order_row = schedule_df[schedule_df["推奨発注量"] > 0].head(1)
+    if next_order_row.empty:
+        next_order_date_text = "発注不要"
+        next_order_qty_text = "0"
+    else:
+        next_order_date_text = _format_schedule_date(pd.Timestamp(next_order_row.iloc[0]["日付"]))
+        next_order_qty_text = f"{float(next_order_row.iloc[0]['推奨発注量']):,.1f}"
+
+    header_left, header_right = st.columns([3, 1])
+    with header_left:
+        st.markdown(f"### {selected_row['product_name']}")
+        st.caption(
+            f"カテゴリ: {selected_row['category']} / 仕入先: {selected_row['supplier']} / 需要基準: {selected_row['demand_basis_label']}"
+        )
+        st.markdown("**次回発注日**")
+        st.markdown(f"<div style='font-size:2.2rem;font-weight:800;margin:0.2rem 0 1.4rem;'>{next_order_date_text}</div>", unsafe_allow_html=True)
+    with header_right:
+        st.markdown("**次回発注量**")
+        st.markdown(f"<div style='font-size:2.2rem;font-weight:800;margin-top:0.2rem;'>{next_order_qty_text}</div>", unsafe_allow_html=True)
+
+    st.dataframe(schedule_df, use_container_width=True, hide_index=True)
+
+    detail_col1, detail_col2, detail_col3, detail_col4 = st.columns(4)
+    detail_col1.metric("現在庫", f"{float(selected_row['current_stock']):,.1f}")
+    detail_col2.metric("発注点", f"{float(selected_row['reorder_point']):,.1f}")
+    detail_col3.metric("目標在庫量", f"{float(selected_row['target_stock']):,.1f}")
+    if pd.isna(selected_row["days_left"]) or selected_row["days_left"] == float("inf"):
+        days_left_text = "∞"
+    else:
+        days_left_text = f"{float(selected_row['days_left']):,.1f}"
+    detail_col4.metric("在庫保有日数", days_left_text)
+
+    st.download_button(
+        "この商品の発注計画CSVをダウンロード",
+        data=schedule_df.to_csv(index=False).encode("utf-8-sig"),
+        file_name=f"order_sheet_{selected_row['product_id']}.csv",
+        mime="text/csv",
+    )
+
+    with st.expander("この商品の計算根拠を見る", expanded=False):
+        reason_lines = [
+            f"需要予測の基準値: {float(selected_row['demand_basis_value']):,.2f} / 日",
+            f"リードタイム: {int(selected_row['lead_time_days'])}日",
+            f"発注見直し周期: {int(max(float(selected_row.get('review_cycle_days', 0) or 0), 1))}日",
+            f"安全在庫日数: {float(selected_row['safety_days']):,.1f}日",
+            f"推奨発注量の調整: 発注単位 {int(selected_row['order_unit'])}, 最低発注数 {int(selected_row['min_order_qty'])}",
+        ]
+        for line in reason_lines:
+            st.write(f"- {line}")
+
+
 def render_planning_tab(
+    metrics_df: pd.DataFrame,
     optimized_df: pd.DataFrame,
     skipped_df: pd.DataFrame,
     risk_df: pd.DataFrame,
     overstock_df: pd.DataFrame,
+    forecast_date: pd.Timestamp,
     order_policy: str,
 ) -> None:
     """最適化結果を表示する。"""
-    st.subheader("次回のおすすめ発注")
-    st.caption(f"現在の発注方式: {order_policy}")
+    render_order_sheet_tab(metrics_df, forecast_date, order_policy)
+
+    st.subheader("今回採用された発注候補")
     if optimized_df.empty:
         st.info("現在の条件では採用された発注候補はありません。")
     else:
         display_df = prepare_display_df(optimized_df, PLAN_COLUMNS)
         st.dataframe(display_df, use_container_width=True)
         st.download_button(
-            "発注計画をCSVダウンロード",
+            "採用候補一覧をCSVダウンロード",
             data=build_download_bytes(optimized_df, PLAN_COLUMNS),
             file_name="next_order_plan.csv",
             mime="text/csv",

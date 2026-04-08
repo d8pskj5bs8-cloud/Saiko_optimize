@@ -295,7 +295,7 @@ def main() -> None:
     planning_tab, table_tab, forecast_tab = st.tabs(["おすすめ発注", "一覧", "需要予測"])
 
     with planning_tab:
-        render_planning_tab(optimized_df, skipped_df, risk_df, overstock_df, order_policy)
+        render_planning_tab(metrics_df, optimized_df, skipped_df, risk_df, overstock_df, forecast_date, order_policy)
 
     with table_tab:
         render_tables(metrics_df, order_needed_df, no_order_df)
