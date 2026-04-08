@@ -350,6 +350,40 @@ def inject_pop_ui_styles() -> None:
             color: #8091a0 !important;
         }
 
+        [data-testid="stSelectbox"] label,
+        [data-testid="stSelectbox"] div,
+        [data-testid="stSelectbox"] span {
+            color: #20313f !important;
+        }
+
+        [data-testid="stSelectbox"] [data-baseweb="select"] > div,
+        [data-testid="stSelectbox"] [data-baseweb="select"] input,
+        [data-testid="stSelectbox"] [data-baseweb="select"] span {
+            background: #fdfefe !important;
+            color: #20313f !important;
+        }
+
+        [data-testid="stSelectbox"] [data-baseweb="select"] > div {
+            border: 1px solid rgba(86, 112, 134, 0.24) !important;
+            border-radius: 14px !important;
+            box-shadow: 0 6px 16px rgba(58, 89, 112, 0.08);
+        }
+
+        div[role="listbox"] {
+            background: #ffffff !important;
+            border: 1px solid rgba(86, 112, 134, 0.18) !important;
+        }
+
+        div[role="option"] {
+            background: #ffffff !important;
+            color: #20313f !important;
+        }
+
+        div[role="option"]:hover {
+            background: #eef5fa !important;
+            color: #18354b !important;
+        }
+
         [data-testid="stFileUploader"] div,
         [data-testid="stFileUploaderDropzone"] div,
         [data-testid="stFileUploaderDropzoneInstructions"],
@@ -702,31 +736,31 @@ def render_order_sheet_tab(metrics_df: pd.DataFrame, forecast_date: pd.Timestamp
         lambda row: f"{row['product_name']} | {row['supplier']} | 在庫 {round(float(row['current_stock']), 1)}",
         axis=1,
     ).tolist()
-    selector_key = "order_sheet_selected_product"
-    if selector_key not in st.session_state:
-        st.session_state[selector_key] = 0
-    st.session_state[selector_key] = min(max(int(st.session_state[selector_key]), 0), len(product_options) - 1)
+    selector_key = "order_sheet_product_selectbox"
+    current_selection = st.session_state.get(selector_key, product_options[0])
+    if current_selection not in product_options:
+        current_selection = product_options[0]
+
+    current_index = product_options.index(current_selection)
 
     selector_col1, selector_col2, selector_col3 = st.columns([1, 4, 1])
     with selector_col1:
-        if st.button("前の商品", use_container_width=True, disabled=st.session_state[selector_key] <= 0):
-            st.session_state[selector_key] -= 1
+        if st.button("前の商品", use_container_width=True, disabled=current_index <= 0):
+            st.session_state[selector_key] = product_options[current_index - 1]
             st.rerun()
     with selector_col2:
         selected_label = st.selectbox(
             "表示する商品",
             product_options,
-            index=st.session_state[selector_key],
-            key="order_sheet_product_selectbox",
+            index=current_index,
+            key=selector_key,
         )
     with selector_col3:
-        if st.button("次の商品", use_container_width=True, disabled=st.session_state[selector_key] >= len(product_options) - 1):
-            st.session_state[selector_key] += 1
+        if st.button("次の商品", use_container_width=True, disabled=current_index >= len(product_options) - 1):
+            st.session_state[selector_key] = product_options[current_index + 1]
             st.rerun()
 
     selected_index = product_options.index(selected_label)
-    if selected_index != st.session_state[selector_key]:
-        st.session_state[selector_key] = selected_index
     st.caption(f"{selected_index + 1} / {len(product_options)} 商品を表示中")
     selected_row = sorted_metrics_df.iloc[selected_index]
 
