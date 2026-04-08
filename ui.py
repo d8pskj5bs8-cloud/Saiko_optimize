@@ -188,11 +188,45 @@ def inject_pop_ui_styles() -> None:
             color: var(--text-main) !important;
         }
 
+        [data-testid="stFileUploader"] section {
+            padding: 0.45rem;
+        }
+
+        [data-testid="stFileUploaderDropzone"] button,
+        [data-testid="stFileUploaderDropzone"] [data-testid="stBaseButton-secondary"],
+        [data-testid="stFileUploader"] button {
+            background: linear-gradient(180deg, #ffffff 0%, #eef6fb 100%) !important;
+            color: #1d4764 !important;
+            border: 1px solid rgba(47, 128, 196, 0.24) !important;
+            border-radius: 12px !important;
+            box-shadow: 0 6px 14px rgba(58, 89, 112, 0.10) !important;
+            font-weight: 700 !important;
+        }
+
+        [data-testid="stFileUploaderDropzone"] button:hover,
+        [data-testid="stFileUploaderDropzone"] [data-testid="stBaseButton-secondary"]:hover,
+        [data-testid="stFileUploader"] button:hover {
+            background: linear-gradient(180deg, #ffffff 0%, #e4f0f9 100%) !important;
+            color: #15384f !important;
+            border-color: rgba(47, 128, 196, 0.34) !important;
+        }
+
         [data-testid="stFileUploader"] small,
         [data-testid="stFileUploader"] span,
         [data-testid="stFileUploader"] p,
         [data-testid="stFileUploader"] label {
             color: var(--text-main) !important;
+        }
+
+        [data-testid="stFileUploaderDropzoneInstructions"] small,
+        [data-testid="stFileUploaderDropzoneInstructions"] span,
+        [data-testid="stFileUploaderDropzoneInstructions"] p,
+        [data-testid="stFileUploaderDropzoneInstructions"] label,
+        [data-testid="stFileUploaderFileName"] small,
+        [data-testid="stFileUploaderFileName"] span,
+        [data-testid="stFileUploaderFileName"] p {
+            color: var(--text-main) !important;
+            opacity: 1 !important;
         }
 
         .stCodeBlock,
