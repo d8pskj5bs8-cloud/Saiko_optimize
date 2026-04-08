@@ -370,7 +370,8 @@ def inject_pop_ui_styles() -> None:
 
         [data-testid="stChatInput"] textarea,
         [data-testid="stTextInput"] input,
-        [data-testid="stNumberInput"] input {
+        [data-testid="stNumberInput"] input,
+        [data-testid="stDateInput"] input {
             color: var(--text-main) !important;
             background: rgba(255, 255, 255, 0.98) !important;
             border: 1px solid rgba(86, 112, 134, 0.18) !important;
@@ -380,8 +381,35 @@ def inject_pop_ui_styles() -> None:
 
         [data-testid="stChatInput"] textarea::placeholder,
         [data-testid="stTextInput"] input::placeholder,
-        [data-testid="stNumberInput"] input::placeholder {
+        [data-testid="stNumberInput"] input::placeholder,
+        [data-testid="stDateInput"] input::placeholder {
             color: #8091a0 !important;
+        }
+
+        [data-testid="stDateInput"] > div,
+        [data-testid="stDateInput"] [data-baseweb="input"] {
+            background: rgba(255, 255, 255, 0.98) !important;
+            border-radius: 14px !important;
+        }
+
+        [data-testid="stDateInput"] [data-baseweb="input"] {
+            border: 1px solid rgba(86, 112, 134, 0.24) !important;
+            box-shadow: 0 6px 16px rgba(58, 89, 112, 0.08);
+        }
+
+        [data-testid="stDateInput"] button {
+            background: linear-gradient(180deg, #ffffff 0%, #eef6fb 100%) !important;
+            color: #1d4764 !important;
+            border: 1px solid rgba(47, 128, 196, 0.20) !important;
+            border-radius: 12px !important;
+        }
+
+        [data-testid="stDateInput"] svg,
+        [data-testid="stDateInput"] label,
+        [data-testid="stDateInput"] span,
+        [data-testid="stDateInput"] div {
+            color: var(--text-main) !important;
+            fill: var(--text-main) !important;
         }
 
         [data-testid="stSelectbox"] label,
