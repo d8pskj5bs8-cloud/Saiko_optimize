@@ -289,17 +289,17 @@ def inject_pop_ui_styles() -> None:
 
         .stButton > button, .stDownloadButton > button {
             border-radius: 14px;
-            border: 1px solid rgba(24, 85, 132, 0.34);
+            border: 1px solid rgba(82, 137, 123, 0.36);
             background:
-                linear-gradient(180deg, #66b5e9 0%, #4095d0 48%, #2f80c4 100%);
-            color: #f8fcff;
+                linear-gradient(180deg, #eef9f4 0%, #d9f2e7 52%, #c3e8d7 100%);
+            color: #1f4d42;
             font-weight: 800;
             letter-spacing: 0.01em;
             padding: 0.72rem 1.15rem;
             min-height: 2.9rem;
             box-shadow:
-                0 4px 0 #1f5f95,
-                0 10px 22px rgba(47, 128, 196, 0.22);
+                0 4px 0 #8abda9,
+                0 10px 22px rgba(122, 177, 156, 0.28);
             transition:
                 transform 120ms ease,
                 box-shadow 120ms ease,
@@ -310,26 +310,26 @@ def inject_pop_ui_styles() -> None:
 
         .stButton > button:hover, .stDownloadButton > button:hover {
             background:
-                linear-gradient(180deg, #76c0ef 0%, #4aa1da 48%, #337fbe 100%);
-            border-color: rgba(24, 85, 132, 0.42);
-            color: #ffffff;
+                linear-gradient(180deg, #f6fcf9 0%, #e3f7ee 48%, #cfefdf 100%);
+            border-color: rgba(82, 137, 123, 0.46);
+            color: #143d34;
             transform: translateY(-1px);
             box-shadow:
-                0 5px 0 #1f5f95,
-                0 14px 26px rgba(47, 128, 196, 0.24);
+                0 5px 0 #8abda9,
+                0 14px 26px rgba(122, 177, 156, 0.30);
         }
 
         .stButton > button:active, .stDownloadButton > button:active {
             transform: translateY(3px);
             box-shadow:
-                0 1px 0 #1f5f95,
-                0 4px 10px rgba(47, 128, 196, 0.18);
+                0 1px 0 #8abda9,
+                0 4px 10px rgba(122, 177, 156, 0.22);
             background:
-                linear-gradient(180deg, #2e76b1 0%, #286c9f 100%);
+                linear-gradient(180deg, #cbe8da 0%, #b8dccb 100%);
         }
 
         .stButton > button:focus-visible, .stDownloadButton > button:focus-visible {
-            outline: 3px solid rgba(97, 174, 232, 0.42);
+            outline: 3px solid rgba(138, 202, 180, 0.44);
             outline-offset: 2px;
         }
 
