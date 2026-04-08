@@ -288,18 +288,49 @@ def inject_pop_ui_styles() -> None:
         }
 
         .stButton > button, .stDownloadButton > button {
-            border-radius: 999px;
-            border: none;
-            background: linear-gradient(135deg, var(--accent) 0%, #58a6dd 100%);
+            border-radius: 14px;
+            border: 1px solid rgba(24, 85, 132, 0.34);
+            background:
+                linear-gradient(180deg, #66b5e9 0%, #4095d0 48%, #2f80c4 100%);
             color: #f8fcff;
-            font-weight: 700;
-            padding: 0.6rem 1rem;
-            box-shadow: 0 10px 20px rgba(47, 128, 196, 0.18);
+            font-weight: 800;
+            letter-spacing: 0.01em;
+            padding: 0.72rem 1.15rem;
+            min-height: 2.9rem;
+            box-shadow:
+                0 4px 0 #1f5f95,
+                0 10px 22px rgba(47, 128, 196, 0.22);
+            transition:
+                transform 120ms ease,
+                box-shadow 120ms ease,
+                background 120ms ease,
+                border-color 120ms ease;
+            cursor: pointer;
         }
 
         .stButton > button:hover, .stDownloadButton > button:hover {
-            background: linear-gradient(135deg, var(--accent-strong) 0%, #438fcb 100%);
+            background:
+                linear-gradient(180deg, #76c0ef 0%, #4aa1da 48%, #337fbe 100%);
+            border-color: rgba(24, 85, 132, 0.42);
             color: #ffffff;
+            transform: translateY(-1px);
+            box-shadow:
+                0 5px 0 #1f5f95,
+                0 14px 26px rgba(47, 128, 196, 0.24);
+        }
+
+        .stButton > button:active, .stDownloadButton > button:active {
+            transform: translateY(3px);
+            box-shadow:
+                0 1px 0 #1f5f95,
+                0 4px 10px rgba(47, 128, 196, 0.18);
+            background:
+                linear-gradient(180deg, #2e76b1 0%, #286c9f 100%);
+        }
+
+        .stButton > button:focus-visible, .stDownloadButton > button:focus-visible {
+            outline: 3px solid rgba(97, 174, 232, 0.42);
+            outline-offset: 2px;
         }
 
         [data-testid="stChatInput"] textarea,
