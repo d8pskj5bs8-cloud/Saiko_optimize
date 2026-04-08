@@ -167,27 +167,6 @@ def main() -> None:
         options=supplier_options,
         default=supplier_options,
     )
-    forecast_mode = st.sidebar.radio(
-        "発注計算に使う需要",
-        options=["実績平均", "需要予測", "大きい方"],
-        horizontal=True,
-        help="需要予測が使えない商品は自動で実績平均にフォールバックします。",
-    )
-    demand_mode_notes = {
-        "実績平均": "通常の平均日販をそのまま使います。",
-        "需要予測": "予測値を優先し、使えない商品は実績平均に戻します。",
-        "大きい方": "実績平均と予測値を比べて、大きい方を採用します。",
-    }
-    st.sidebar.markdown(
-        f"""
-        <div class="demand-mode-indicator">
-            <div class="demand-mode-indicator-label">現在の選択</div>
-            <div class="demand-mode-indicator-value">{forecast_mode}</div>
-            <div class="demand-mode-indicator-note">{demand_mode_notes[forecast_mode]}</div>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
     forecast_date = pd.Timestamp(
         st.sidebar.date_input(
             "予測対象日",
@@ -223,6 +202,7 @@ def main() -> None:
     st.sidebar.caption("CSVに任意列がない場合は、発注単位1、最小発注数0、原価1000円、月次保管コスト率2%、重要度1.0で計算します。")
     if order_policy == "定期発注":
         st.sidebar.caption("定期発注では review_cycle_days を使って、次回見直しまで持つ目標在庫量を計算します。")
+    st.sidebar.caption("発注計算は常に需要予測を優先し、予測を作れない商品だけ実績平均日販に戻します。")
 
     filtered_df = df[df["supplier"].astype(str).isin(selected_suppliers)].copy()
     if filtered_df.empty:
@@ -282,18 +262,10 @@ def main() -> None:
         filtered_df["forecast_effective_daily_sales"] = np.nan
 
     forecast_basis_column = "forecast_effective_daily_sales" if order_policy == "定期発注" else "forecast_daily_sales"
-    if forecast_mode == "需要予測":
-        filtered_df["selected_daily_sales"] = filtered_df[forecast_basis_column].fillna(filtered_df["avg_daily_sales"])
-    elif forecast_mode == "大きい方":
-        filtered_df["selected_daily_sales"] = np.maximum(
-            filtered_df["avg_daily_sales"].astype(float),
-            filtered_df[forecast_basis_column].fillna(0).astype(float),
-        )
-    else:
-        filtered_df["selected_daily_sales"] = filtered_df["avg_daily_sales"].astype(float)
+    filtered_df["selected_daily_sales"] = filtered_df[forecast_basis_column].fillna(filtered_df["avg_daily_sales"])
 
     try:
-        metrics_df = calculate_inventory_metrics(filtered_df, "selected_daily_sales", forecast_mode, order_policy)
+        metrics_df = calculate_inventory_metrics(filtered_df, "selected_daily_sales", "需要予測優先", order_policy)
     except Exception as exc:
         st.error(f"在庫指標の計算中に予期せぬエラーが発生しました: {exc}")
         return
@@ -329,7 +301,7 @@ def main() -> None:
         render_tables(metrics_df, order_needed_df, no_order_df)
 
     with forecast_tab:
-        render_forecast_tab(forecast_result, forecast_mode, forecast_date)
+        render_forecast_tab(forecast_result, forecast_date)
 
 
 if __name__ == "__main__":

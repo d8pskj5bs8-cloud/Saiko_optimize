@@ -591,13 +591,13 @@ def render_tables(metrics_df: pd.DataFrame, order_needed_df: pd.DataFrame, no_or
 
 def render_forecast_tab(
     forecast_result: Dict[str, Any],
-    forecast_mode: str,
     forecast_date: pd.Timestamp,
 ) -> None:
     """需要予測の概要を表示する。"""
     st.subheader("需要予測の見方")
-    st.caption(f"予測対象日: {forecast_date.date()} / 発注計算モード: {forecast_mode}")
+    st.caption(f"予測対象日: {forecast_date.date()} / 発注計算は需要予測優先です")
     st.caption("定期発注では、翌日予測だけでなくリードタイム + 発注周期 + 安全日数の累積需要を日換算して発注計算に使います。")
+    st.caption("需要予測を作れない商品は、自動で実績平均日販にフォールバックします。")
     st.write(forecast_result["message"])
 
     for note in forecast_result.get("notes", [])[:5]:
