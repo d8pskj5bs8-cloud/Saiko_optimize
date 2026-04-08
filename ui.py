@@ -702,8 +702,33 @@ def render_order_sheet_tab(metrics_df: pd.DataFrame, forecast_date: pd.Timestamp
         lambda row: f"{row['product_name']} | {row['supplier']} | 在庫 {round(float(row['current_stock']), 1)}",
         axis=1,
     ).tolist()
-    selected_label = st.selectbox("商品を選択", product_options)
-    selected_row = sorted_metrics_df.iloc[product_options.index(selected_label)]
+    selector_key = "order_sheet_selected_product"
+    if selector_key not in st.session_state:
+        st.session_state[selector_key] = 0
+    st.session_state[selector_key] = min(max(int(st.session_state[selector_key]), 0), len(product_options) - 1)
+
+    selector_col1, selector_col2, selector_col3 = st.columns([1, 4, 1])
+    with selector_col1:
+        if st.button("前の商品", use_container_width=True, disabled=st.session_state[selector_key] <= 0):
+            st.session_state[selector_key] -= 1
+            st.rerun()
+    with selector_col2:
+        selected_label = st.selectbox(
+            "表示する商品",
+            product_options,
+            index=st.session_state[selector_key],
+            key="order_sheet_product_selectbox",
+        )
+    with selector_col3:
+        if st.button("次の商品", use_container_width=True, disabled=st.session_state[selector_key] >= len(product_options) - 1):
+            st.session_state[selector_key] += 1
+            st.rerun()
+
+    selected_index = product_options.index(selected_label)
+    if selected_index != st.session_state[selector_key]:
+        st.session_state[selector_key] = selected_index
+    st.caption(f"{selected_index + 1} / {len(product_options)} 商品を表示中")
+    selected_row = sorted_metrics_df.iloc[selected_index]
 
     schedule_df = build_product_order_sheet(selected_row, forecast_date)
     next_order_row = schedule_df[schedule_df["推奨発注量"] > 0].head(1)
