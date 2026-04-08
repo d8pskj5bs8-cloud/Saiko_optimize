@@ -82,7 +82,7 @@ def build_summary_message(metrics_df: pd.DataFrame, order_needed_df: pd.DataFram
     return (
         f"全 {total_items} 商品のうち、発注が必要なのは {total_order_items} 商品です。"
         f" 現在の発注方式は {policy_label} です。"
-        f" 発注候補の総額は {total_order_cost:,}円で、現在の予算条件で採用されているのは"
+        f" 発注が必要なものの総額は {total_order_cost:,}円で、現在の予算条件で優先されているのは"
         f" {len(optimized_df)} 件、合計 {optimized_cost:,}円です。"
         f" 見直し余地のある過剰在庫候補額は {overstock_cost:,}円、欠品高リスクは {high_risk_count} 商品です。"
         f" もっとも在庫切れが近いのは {most_urgent['product_name']} で、残りは"
@@ -92,7 +92,7 @@ def build_summary_message(metrics_df: pd.DataFrame, order_needed_df: pd.DataFram
 
 def build_product_message(row: pd.Series) -> str:
     """単一商品の状況説明を作る。"""
-    need_order_text = "発注候補に入っています" if bool(row["need_order"]) else "現時点では発注不要です"
+    need_order_text = "優先度付き発注一覧に入っています" if bool(row["need_order"]) else "現時点では発注不要です"
     demand_basis_text = f"{row['demand_basis_label']}日販 {row['demand_basis_value']:.2f}"
     forecast_text = ""
     if not pd.isna(row.get("forecast_daily_sales", np.nan)):
@@ -170,10 +170,10 @@ def build_budget_plan_message(optimized_df: pd.DataFrame, budget: int, skipped_d
     used_budget = int(optimized_df["estimated_order_cost"].sum())
     skipped_count = len(skipped_df)
     if optimized_df.empty:
-        return f"予算 {budget:,}円 では採用できる発注候補がありませんでした。"
+        return f"予算 {budget:,}円 では優先できる発注対象がありませんでした。"
     return (
-        f"予算 {budget:,}円 の範囲で {len(optimized_df)} 件を採用し、使用額は {used_budget:,}円 です。"
-        f" 予算や優先度の都合で見送られた候補は {skipped_count} 件あります。"
+        f"予算 {budget:,}円 の範囲で {len(optimized_df)} 件を優先し、使用額は {used_budget:,}円 です。"
+        f" 予算や優先度の都合で今回は優先しなかったものは {skipped_count} 件あります。"
     )
 
 
@@ -600,9 +600,9 @@ def answer_inventory_question(
 
     if any(keyword in normalized for keyword in ["今日", "次回", "おすすめ発注", "推奨発注"]):
         if optimized_df.empty:
-            return {"content": "現在の条件では採用された発注候補はありません。", "dataframe": None}
+            return {"content": "現在の条件では優先度の高いものはありません。", "dataframe": None}
         return {
-            "content": f"現在の条件で採用されている次回発注案は {len(optimized_df)} 件です。",
+            "content": f"現在の条件で優先度の高いものは {len(optimized_df)} 件です。",
             "dataframe": prepare_display_df(optimized_df, PLAN_COLUMNS),
         }
 

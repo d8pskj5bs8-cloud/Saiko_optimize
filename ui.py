@@ -828,22 +828,22 @@ def render_planning_tab(
     """最適化結果を表示する。"""
     render_order_sheet_tab(metrics_df, forecast_date, order_policy)
 
-    st.subheader("今回採用された発注候補")
+    st.subheader("優先度の高いもの")
     if optimized_df.empty:
-        st.info("現在の条件では採用された発注候補はありません。")
+        st.info("現在の条件では優先度の高いものはありません。")
     else:
         display_df = prepare_display_df(optimized_df, PLAN_COLUMNS)
         st.dataframe(display_df, use_container_width=True)
         st.download_button(
-            "採用候補一覧をCSVダウンロード",
+            "優先度の高いもの一覧をCSVダウンロード",
             data=build_download_bytes(optimized_df, PLAN_COLUMNS),
             file_name="next_order_plan.csv",
             mime="text/csv",
         )
 
-    st.subheader("見送り候補")
+    st.subheader("今回は優先しなかったもの")
     if skipped_df.empty:
-        st.info("見送り候補はありません。")
+        st.info("今回は優先しなかったものはありません。")
     else:
         st.dataframe(prepare_display_df(skipped_df, PLAN_COLUMNS), use_container_width=True)
 
@@ -865,14 +865,14 @@ def render_tables(metrics_df: pd.DataFrame, order_needed_df: pd.DataFrame, no_or
     st.subheader("全商品一覧")
     st.dataframe(prepare_display_df(metrics_df, TABLE_COLUMNS), use_container_width=True)
 
-    st.subheader("次回発注候補一覧")
+    st.subheader("優先度付き発注一覧")
     if order_needed_df.empty:
         st.info("発注が必要な商品はありません。")
     else:
         order_display = prepare_display_df(order_needed_df, ORDER_CANDIDATE_COLUMNS)
         st.dataframe(order_display, use_container_width=True)
         st.download_button(
-            "発注候補をCSVダウンロード",
+            "優先度付き発注一覧をCSVダウンロード",
             data=build_download_bytes(order_needed_df, ORDER_CANDIDATE_COLUMNS),
             file_name="next_order_plan.csv",
             mime="text/csv",
