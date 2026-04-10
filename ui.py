@@ -1,6 +1,7 @@
 from io import BytesIO
 from typing import Any, Dict, Optional
 
+import altair as alt
 import pandas as pd
 import streamlit as st
 
@@ -848,8 +849,23 @@ def render_order_sheet_tab(metrics_df: pd.DataFrame, forecast_date: pd.Timestamp
         st.markdown("**次回発注量**")
         st.markdown(f"<div style='font-size:2.2rem;font-weight:800;margin-top:0.2rem;'>{next_order_qty_text}</div>", unsafe_allow_html=True)
 
+    chart_df = display_schedule_df.copy()
+    chart_df["日付"] = pd.to_datetime(chart_df["日付"])
+    order_chart = (
+        alt.Chart(chart_df)
+        .mark_bar(cornerRadiusTopLeft=4, cornerRadiusTopRight=4)
+        .encode(
+            x=alt.X("yearmonthdate(日付):T", title="日付", axis=alt.Axis(labelAngle=0)),
+            y=alt.Y("推奨発注個数:Q", title="推奨発注個数"),
+            tooltip=[
+                alt.Tooltip("yearmonthdate(日付):T", title="日付"),
+                alt.Tooltip("推奨発注個数:Q", title="推奨発注個数", format=",.0f"),
+            ],
+        )
+    )
+
     st.caption("日付ごとの推奨発注個数を棒グラフで確認できます。")
-    st.bar_chart(display_schedule_df, x="日付", y="推奨発注個数", use_container_width=True)
+    st.altair_chart(order_chart, use_container_width=True)
     st.dataframe(display_schedule_df, use_container_width=True, hide_index=True)
 
     st.download_button(
