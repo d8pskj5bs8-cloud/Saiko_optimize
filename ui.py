@@ -853,7 +853,7 @@ def render_order_sheet_tab(metrics_df: pd.DataFrame, forecast_date: pd.Timestamp
     chart_df["日付"] = pd.to_datetime(chart_df["日付"])
     order_chart = (
         alt.Chart(chart_df)
-        .mark_bar(cornerRadiusTopLeft=4, cornerRadiusTopRight=4)
+        .mark_bar(cornerRadiusTopLeft=4, cornerRadiusTopRight=4, color="#2f80c4")
         .encode(
             x=alt.X("yearmonthdate(日付):T", title="日付", axis=alt.Axis(labelAngle=0)),
             y=alt.Y("推奨発注個数:Q", title="推奨発注個数"),
@@ -861,6 +861,15 @@ def render_order_sheet_tab(metrics_df: pd.DataFrame, forecast_date: pd.Timestamp
                 alt.Tooltip("yearmonthdate(日付):T", title="日付"),
                 alt.Tooltip("推奨発注個数:Q", title="推奨発注個数", format=",.0f"),
             ],
+        )
+        .properties(background="#ffffff")
+        .configure_view(stroke="#d7e3ec", fill="#ffffff")
+        .configure_axis(
+            labelColor="#20313f",
+            titleColor="#20313f",
+            domainColor="#9fb4c6",
+            gridColor="#e7eef4",
+            tickColor="#9fb4c6",
         )
     )
 
