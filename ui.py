@@ -827,6 +827,7 @@ def render_order_sheet_tab(metrics_df: pd.DataFrame, forecast_date: pd.Timestamp
     selected_row = sorted_metrics_df.iloc[selected_index]
 
     schedule_df = build_product_order_sheet(selected_row, forecast_date)
+    display_schedule_df = schedule_df[["日付", "推奨発注量"]].rename(columns={"推奨発注量": "推奨発注個数"})
     next_order_row = schedule_df[schedule_df["推奨発注量"] > 0].head(1)
     if next_order_row.empty:
         next_order_date_text = "発注不要"
@@ -847,17 +848,9 @@ def render_order_sheet_tab(metrics_df: pd.DataFrame, forecast_date: pd.Timestamp
         st.markdown("**次回発注量**")
         st.markdown(f"<div style='font-size:2.2rem;font-weight:800;margin-top:0.2rem;'>{next_order_qty_text}</div>", unsafe_allow_html=True)
 
-    st.dataframe(schedule_df, use_container_width=True, hide_index=True)
-
-    detail_col1, detail_col2, detail_col3, detail_col4 = st.columns(4)
-    detail_col1.metric("現在庫", f"{float(selected_row['current_stock']):,.1f}")
-    detail_col2.metric("発注点", f"{float(selected_row['reorder_point']):,.1f}")
-    detail_col3.metric("目標在庫量", f"{float(selected_row['target_stock']):,.1f}")
-    if pd.isna(selected_row["days_left"]) or selected_row["days_left"] == float("inf"):
-        days_left_text = "∞"
-    else:
-        days_left_text = f"{float(selected_row['days_left']):,.1f}"
-    detail_col4.metric("在庫保有日数", days_left_text)
+    st.caption("日付ごとの推奨発注個数を棒グラフで確認できます。")
+    st.bar_chart(display_schedule_df, x="日付", y="推奨発注個数", use_container_width=True)
+    st.dataframe(display_schedule_df, use_container_width=True, hide_index=True)
 
     st.download_button(
         "この商品の発注計画CSVをダウンロード",
@@ -865,17 +858,6 @@ def render_order_sheet_tab(metrics_df: pd.DataFrame, forecast_date: pd.Timestamp
         file_name=f"order_sheet_{selected_row['product_id']}.csv",
         mime="text/csv",
     )
-
-    with st.expander("この商品の計算根拠を見る", expanded=False):
-        reason_lines = [
-            f"需要予測の基準値: {float(selected_row['demand_basis_value']):,.2f} / 日",
-            f"リードタイム: {int(selected_row['lead_time_days'])}日",
-            f"発注見直し周期: {int(max(float(selected_row.get('review_cycle_days', 0) or 0), 1))}日",
-            f"安全在庫日数: {float(selected_row['safety_days']):,.1f}日",
-            f"推奨発注量の調整: 発注単位 {int(selected_row['order_unit'])}, 最低発注数 {int(selected_row['min_order_qty'])}",
-        ]
-        for line in reason_lines:
-            st.write(f"- {line}")
 
 
 def render_planning_tab(
