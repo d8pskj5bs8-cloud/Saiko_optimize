@@ -94,10 +94,9 @@ def main() -> None:
         st.error(f"CSVの読み込み中にエラーが発生しました: {exc}")
         return
 
-    order_policy = st.sidebar.radio(
+    order_policy = st.sidebar.selectbox(
         "発注方式",
         options=["都度発注", "定期発注"],
-        horizontal=True,
         help="都度発注は発注点ベース、定期発注は次回見直しまで持たせる目標在庫量ベースで計算します。",
     )
 

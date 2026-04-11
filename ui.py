@@ -128,8 +128,7 @@ def inject_pop_ui_styles() -> None:
         }
 
         [data-testid="stSidebar"] {
-            background:
-                linear-gradient(180deg, #dbe7e4 0%, #c8d9d4 48%, #b7cbc5 100%);
+            background: #7f858b;
             border-left: 1px solid var(--line);
         }
 
@@ -449,21 +448,50 @@ def inject_pop_ui_styles() -> None:
 
         [data-testid="stSelectbox"] label,
         [data-testid="stSelectbox"] div,
-        [data-testid="stSelectbox"] span {
+        [data-testid="stSelectbox"] span,
+        [data-testid="stMultiSelect"] label,
+        [data-testid="stMultiSelect"] div,
+        [data-testid="stMultiSelect"] span {
             color: #20313f !important;
         }
 
         [data-testid="stSelectbox"] [data-baseweb="select"] > div,
         [data-testid="stSelectbox"] [data-baseweb="select"] input,
-        [data-testid="stSelectbox"] [data-baseweb="select"] span {
-            background: #fdfefe !important;
+        [data-testid="stSelectbox"] [data-baseweb="select"] span,
+        [data-testid="stMultiSelect"] [data-baseweb="select"] > div,
+        [data-testid="stMultiSelect"] [data-baseweb="select"] input,
+        [data-testid="stMultiSelect"] [data-baseweb="select"] span {
+            background: #ffffff !important;
             color: #20313f !important;
         }
 
-        [data-testid="stSelectbox"] [data-baseweb="select"] > div {
+        [data-testid="stSelectbox"] [data-baseweb="select"] > div,
+        [data-testid="stMultiSelect"] [data-baseweb="select"] > div {
             border: 1px solid rgba(86, 112, 134, 0.24) !important;
             border-radius: 14px !important;
             box-shadow: 0 6px 16px rgba(58, 89, 112, 0.08);
+        }
+
+        [data-testid="stMultiSelect"] [data-baseweb="tag"] {
+            background: #ffffff !important;
+            border: 1px solid rgba(86, 112, 134, 0.18) !important;
+            color: #20313f !important;
+        }
+
+        [data-testid="stMultiSelect"] [data-baseweb="tag"] span,
+        [data-testid="stMultiSelect"] [data-baseweb="tag"] svg {
+            color: #20313f !important;
+            fill: #20313f !important;
+        }
+
+        [data-testid="stNumberInput"] button {
+            background: #ffffff !important;
+            color: #20313f !important;
+            border: 1px solid rgba(86, 112, 134, 0.18) !important;
+        }
+
+        [data-testid="stNumberInput"] button svg {
+            fill: #20313f !important;
         }
 
         div[role="listbox"] {
@@ -536,100 +564,6 @@ def inject_pop_ui_styles() -> None:
             color: var(--text-main) !important;
         }
 
-        [data-testid="stSidebar"] [data-testid="stRadio"] > div {
-            gap: 0.55rem;
-        }
-
-        [data-testid="stSidebar"] [data-testid="stRadio"] div[role="radiogroup"] {
-            display: grid;
-            grid-template-columns: repeat(2, minmax(0, 1fr));
-            gap: 0.55rem;
-            padding: 0;
-            background: transparent;
-            border: none;
-            border-radius: 0;
-        }
-
-        [data-testid="stSidebar"] [data-testid="stRadio"] div[role="radiogroup"] label {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin: 0;
-            min-height: 116px;
-            padding: 0;
-            border: 1px solid rgba(82, 137, 123, 0.36);
-            border-radius: 14px;
-            background: linear-gradient(180deg, rgba(245, 252, 248, 0.96) 0%, rgba(231, 246, 238, 0.98) 100%);
-            box-shadow:
-                0 4px 0 #8abda9,
-                0 10px 22px rgba(122, 177, 156, 0.28);
-            transition: transform 0.12s ease, box-shadow 0.12s ease, border-color 0.12s ease, background 0.12s ease;
-        }
-
-        [data-testid="stSidebar"] [data-testid="stRadio"] div[role="radiogroup"] label:hover {
-            transform: translateY(-1px);
-            border-color: rgba(82, 137, 123, 0.46);
-            background: linear-gradient(180deg, #f6fcf9 0%, #e3f7ee 48%, #cfefdf 100%);
-            box-shadow:
-                0 5px 0 #8abda9,
-                0 14px 26px rgba(122, 177, 156, 0.30);
-        }
-
-        [data-testid="stSidebar"] [data-testid="stRadio"] div[role="radiogroup"] label[data-checked="true"] {
-            transform: translateY(3px);
-            border-color: rgba(82, 137, 123, 0.52);
-            background: linear-gradient(180deg, #cbe8da 0%, #b8dccb 100%);
-            box-shadow:
-                0 1px 0 #8abda9,
-                0 4px 10px rgba(122, 177, 156, 0.22);
-        }
-
-        [data-testid="stSidebar"] [data-testid="stRadio"] div[role="radiogroup"] label:active {
-            transform: translateY(3px);
-            box-shadow:
-                0 1px 0 #8abda9,
-                0 4px 10px rgba(122, 177, 156, 0.22);
-        }
-
-        [data-testid="stSidebar"] [data-testid="stRadio"] div[role="radiogroup"] label > div {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            width: 100%;
-            height: 100%;
-            padding: 0;
-            background: transparent !important;
-            border: none !important;
-            border-radius: 0 !important;
-            box-shadow: none !important;
-        }
-
-        [data-testid="stSidebar"] [data-testid="stRadio"] div[role="radiogroup"] label > div:first-child,
-        [data-testid="stSidebar"] [data-testid="stRadio"] div[role="radiogroup"] label input,
-        [data-testid="stSidebar"] [data-testid="stRadio"] div[role="radiogroup"] label svg {
-            display: none !important;
-        }
-
-        [data-testid="stSidebar"] [data-testid="stRadio"] div[role="radiogroup"] label p {
-            display: block;
-            margin: 0 auto;
-            width: auto;
-            font-size: 1rem;
-            font-weight: 800;
-            line-height: 1.15;
-            text-align: center;
-            writing-mode: vertical-rl;
-            text-orientation: upright;
-            letter-spacing: 0.08em;
-            white-space: normal;
-            transform: translateX(-0.18em);
-            color: #1f4d42;
-        }
-
-        [data-testid="stSidebar"] [data-testid="stRadio"] div[role="radiogroup"] label[data-checked="true"] p {
-            color: #143d34;
-        }
-
         .demand-mode-indicator {
             margin-top: 0.45rem;
             padding: 0.8rem 0.9rem;
@@ -660,11 +594,6 @@ def inject_pop_ui_styles() -> None:
             color: var(--text-soft);
         }
 
-        @media (max-width: 1100px) {
-            [data-testid="stSidebar"] [data-testid="stRadio"] div[role="radiogroup"] {
-                grid-template-columns: 1fr;
-            }
-        }
         </style>
         """,
         unsafe_allow_html=True,
