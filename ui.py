@@ -851,23 +851,25 @@ def render_order_sheet_tab(metrics_df: pd.DataFrame, forecast_date: pd.Timestamp
 
     chart_df = display_schedule_df.copy()
     chart_df["日付"] = pd.to_datetime(chart_df["日付"])
+    chart_df["日付ラベル"] = chart_df["日付"].dt.strftime("%m/%d")
+    date_order = chart_df["日付ラベル"].tolist()
     bar_chart = (
         alt.Chart(chart_df)
-        .mark_bar(cornerRadiusTopLeft=4, cornerRadiusTopRight=4, color="#2f80c4")
+        .mark_bar(size=28, cornerRadiusTopLeft=4, cornerRadiusTopRight=4, color="#2f80c4")
         .encode(
-            x=alt.X("yearmonthdate(日付):T", title="日付", axis=alt.Axis(labelAngle=0)),
+            x=alt.X("日付ラベル:N", title="日付", sort=date_order, axis=alt.Axis(labelAngle=0)),
             y=alt.Y("推奨発注個数:Q", title="推奨発注個数"),
             tooltip=[
-                alt.Tooltip("yearmonthdate(日付):T", title="日付"),
+                alt.Tooltip("日付:T", title="日付"),
                 alt.Tooltip("推奨発注個数:Q", title="推奨発注個数", format=",.0f"),
             ],
         )
     )
     label_chart = (
         alt.Chart(chart_df)
-        .mark_text(dy=-8, color="#20313f", fontSize=13, fontWeight="bold")
+        .mark_text(dy=-8, color="#20313f", fontSize=18, fontWeight="bold")
         .encode(
-            x=alt.X("yearmonthdate(日付):T"),
+            x=alt.X("日付ラベル:N", sort=date_order),
             y=alt.Y("推奨発注個数:Q"),
             text=alt.Text("推奨発注個数:Q", format=",.0f"),
         )
