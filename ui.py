@@ -550,8 +550,8 @@ def inject_pop_ui_styles() -> None:
             align-items: center;
             justify-content: center;
             margin: 0;
-            min-height: 72px;
-            padding: 0.8rem 0.75rem;
+            min-height: 116px;
+            padding: 0.75rem 0.4rem;
             border: 1px solid rgba(114, 171, 152, 0.34);
             border-radius: 16px;
             background: linear-gradient(180deg, rgba(245, 252, 248, 0.96) 0%, rgba(231, 246, 238, 0.98) 100%);
@@ -587,18 +587,30 @@ def inject_pop_ui_styles() -> None:
         }
 
         [data-testid="stSidebar"] [data-testid="stRadio"] div[role="radiogroup"] label > div {
-            width: 100%;
+            display: flex;
+            align-items: center;
             justify-content: center;
+            width: 100%;
+            height: 100%;
+        }
+
+        [data-testid="stSidebar"] [data-testid="stRadio"] div[role="radiogroup"] label > div:first-child,
+        [data-testid="stSidebar"] [data-testid="stRadio"] div[role="radiogroup"] label input,
+        [data-testid="stSidebar"] [data-testid="stRadio"] div[role="radiogroup"] label svg {
+            display: none !important;
         }
 
         [data-testid="stSidebar"] [data-testid="stRadio"] div[role="radiogroup"] label p {
             margin: 0;
-            width: 100%;
-            font-size: 0.96rem;
+            width: auto;
+            font-size: 1rem;
             font-weight: 700;
-            line-height: 1.35;
+            line-height: 1.15;
             text-align: center;
-            white-space: nowrap;
+            writing-mode: vertical-rl;
+            text-orientation: upright;
+            letter-spacing: 0.08em;
+            white-space: normal;
             color: var(--text-main);
         }
 
