@@ -219,6 +219,14 @@ def inject_pop_ui_styles() -> None:
             color: var(--text-main) !important;
         }
 
+        [data-testid="stFileUploader"] label {
+            display: block !important;
+            line-height: 1.45 !important;
+            padding-top: 0.1rem;
+            margin-bottom: 0.25rem;
+            overflow: visible !important;
+        }
+
         [data-testid="stFileUploaderDropzoneInstructions"] small,
         [data-testid="stFileUploaderDropzoneInstructions"] span,
         [data-testid="stFileUploaderDropzoneInstructions"] p,
