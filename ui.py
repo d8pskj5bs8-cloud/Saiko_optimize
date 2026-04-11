@@ -799,28 +799,31 @@ def render_order_sheet_tab(metrics_df: pd.DataFrame, forecast_date: pd.Timestamp
         lambda row: f"{row['product_name']} | {row['supplier']} | 在庫 {round(float(row['current_stock']), 1)}",
         axis=1,
     ).tolist()
-    selector_key = "order_sheet_product_selectbox"
-    current_selection = st.session_state.get(selector_key, product_options[0])
+    selection_state_key = "order_sheet_product_selection"
+    selector_widget_key = "order_sheet_product_selectbox"
+    current_selection = st.session_state.get(selection_state_key, product_options[0])
     if current_selection not in product_options:
         current_selection = product_options[0]
+        st.session_state[selection_state_key] = current_selection
 
     current_index = product_options.index(current_selection)
 
     selector_col1, selector_col2, selector_col3 = st.columns([1, 4, 1])
     with selector_col1:
         if st.button("前の商品", use_container_width=True, disabled=current_index <= 0):
-            st.session_state[selector_key] = product_options[current_index - 1]
+            st.session_state[selection_state_key] = product_options[current_index - 1]
             st.rerun()
     with selector_col2:
         selected_label = st.selectbox(
             "表示する商品",
             product_options,
             index=current_index,
-            key=selector_key,
+            key=selector_widget_key,
         )
+        st.session_state[selection_state_key] = selected_label
     with selector_col3:
         if st.button("次の商品", use_container_width=True, disabled=current_index >= len(product_options) - 1):
-            st.session_state[selector_key] = product_options[current_index + 1]
+            st.session_state[selection_state_key] = product_options[current_index + 1]
             st.rerun()
 
     selected_index = product_options.index(selected_label)
