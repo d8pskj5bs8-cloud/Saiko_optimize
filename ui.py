@@ -543,6 +543,10 @@ def inject_pop_ui_styles() -> None:
             display: grid;
             grid-template-columns: repeat(2, minmax(0, 1fr));
             gap: 0.55rem;
+            padding: 0;
+            background: transparent;
+            border: none;
+            border-radius: 0;
         }
 
         [data-testid="stSidebar"] [data-testid="stRadio"] div[role="radiogroup"] label {
@@ -551,7 +555,7 @@ def inject_pop_ui_styles() -> None:
             justify-content: center;
             margin: 0;
             min-height: 116px;
-            padding: 0.75rem 0.4rem;
+            padding: 0;
             border: 1px solid rgba(114, 171, 152, 0.34);
             border-radius: 16px;
             background: linear-gradient(180deg, rgba(245, 252, 248, 0.96) 0%, rgba(231, 246, 238, 0.98) 100%);
@@ -592,6 +596,11 @@ def inject_pop_ui_styles() -> None:
             justify-content: center;
             width: 100%;
             height: 100%;
+            padding: 0;
+            background: transparent !important;
+            border: none !important;
+            border-radius: 0 !important;
+            box-shadow: none !important;
         }
 
         [data-testid="stSidebar"] [data-testid="stRadio"] div[role="radiogroup"] label > div:first-child,
