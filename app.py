@@ -24,7 +24,6 @@ from inventory import calculate_inventory_metrics, optimize_order_plan
 from ui import (
     inject_pop_ui_styles,
     render_chat_section,
-    render_forecast_tab,
     render_planning_tab,
     render_pop_hero,
     render_summary,
@@ -54,7 +53,7 @@ def main() -> None:
 
     st.title("在庫発注計画アシスタント")
     st.write(
-        "CSVを読み込むと、次回の発注判断を一覧とチャットの両方で確認できます。需要予測は必要なときだけ追加して使えます。"
+        "CSVを読み込むと、次回の発注判断を一覧とチャットの両方で確認できます。需要予測は必要なときだけ裏側で追加して使えます。"
     )
     render_pop_hero()
 
@@ -169,13 +168,13 @@ def main() -> None:
     )
     forecast_date = pd.Timestamp(
         st.sidebar.date_input(
-            "予測対象日",
+            "計画基準日",
             **forecast_date_input_args,
         )
     )
     if external_df is not None and not external_df.empty:
         st.sidebar.caption(
-            f"外部要因CSVで選べる予測日は {earliest_external_date.date()} 〜 {latest_external_date.date()} です。"
+            f"外部要因CSVで使える日付は {earliest_external_date.date()} 〜 {latest_external_date.date()} です。"
         )
     budget_limit = st.sidebar.number_input(
         "予算上限（円）",
@@ -202,20 +201,12 @@ def main() -> None:
     st.sidebar.caption("CSVに任意列がない場合は、発注単位1、最小発注数0、原価1000円、月次保管コスト率2%、重要度1.0で計算します。")
     if order_policy == "定期発注":
         st.sidebar.caption("定期発注では review_cycle_days を使って、次回見直しまで持つ目標在庫量を計算します。")
-    st.sidebar.caption("発注計算は常に需要予測を優先し、予測を作れない商品だけ実績平均日販に戻します。")
+    st.sidebar.caption("発注計算では需要予測を優先し、作れない商品だけ実績平均日販に戻します。")
 
     filtered_df = df[df["supplier"].astype(str).isin(selected_suppliers)].copy()
     if filtered_df.empty:
         st.warning("選択中の仕入先に該当する商品がありません。")
         return
-
-    forecast_result: Dict[str, Any] = {
-        "enabled": False,
-        "message": "販売履歴CSVと外部要因CSVをアップロードすると需要予測を利用できます。",
-        "forecast_df": pd.DataFrame(),
-        "coefficients_df": pd.DataFrame(),
-        "notes": [],
-    }
 
     if sales_history_file is not None and external_factors_file is not None:
         normalization_notes.extend(forecast_extra_notes)
@@ -238,8 +229,6 @@ def main() -> None:
                     on="product_id",
                     how="left",
                 )
-    elif sales_history_file is not None or external_factors_file is not None:
-        forecast_result["message"] = "需要予測を使うには、販売履歴CSVと外部要因CSVの両方をアップロードしてください。"
 
     if len(normalization_notes) > len(load_notes + column_notes):
         with st.expander("追加CSV読み込みメモ", expanded=False):
@@ -292,16 +281,13 @@ def main() -> None:
         openai_api_key,
     )
 
-    planning_tab, table_tab, forecast_tab = st.tabs(["おすすめ発注", "一覧", "需要予測"])
+    planning_tab, table_tab = st.tabs(["おすすめ発注", "一覧"])
 
     with planning_tab:
         render_planning_tab(metrics_df, optimized_df, skipped_df, risk_df, overstock_df, forecast_date, order_policy)
 
     with table_tab:
         render_tables(metrics_df, order_needed_df, no_order_df)
-
-    with forecast_tab:
-        render_forecast_tab(forecast_result, forecast_date)
 
 
 if __name__ == "__main__":

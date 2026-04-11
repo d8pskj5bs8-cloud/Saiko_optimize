@@ -1,5 +1,5 @@
 from io import BytesIO
-from typing import Any, Dict, Optional
+from typing import Optional
 
 import altair as alt
 import pandas as pd
@@ -7,8 +7,6 @@ import streamlit as st
 
 from chat import answer_inventory_question, answer_inventory_with_llm, initialize_chat_state
 from constants import (
-    FORECAST_COEFFICIENT_COLUMNS,
-    FORECAST_PRODUCT_COLUMNS,
     NO_ORDER_COLUMNS,
     ORDER_CANDIDATE_COLUMNS,
     OVERSTOCK_COLUMNS,
@@ -57,32 +55,6 @@ def render_summary(
         f"現在の発注方式: {policy_label} / 発注対象: {total_order_items}商品 / 予測適用: {forecast_items}商品 / "
         f"予算設定: {budget_text} / 欠品高リスク額の目安: {stockout_risk_cost:,}円"
     )
-
-
-def build_forecast_plain_summary(forecast_df: pd.DataFrame) -> str:
-    """予測結果を現場向けの短い文章にまとめる。"""
-    available_df = forecast_df[forecast_df["forecast_daily_sales"].notna()].copy()
-    if available_df.empty:
-        return "今回は需要予測を使える商品がまだありません。"
-
-    increased_df = available_df[available_df["forecast_diff"] > 0].sort_values("forecast_diff", ascending=False)
-    decreased_df = available_df[available_df["forecast_diff"] < 0].sort_values("forecast_diff")
-
-    period_ready_count = int(available_df["forecast_period_demand"].notna().sum()) if "forecast_period_demand" in available_df.columns else 0
-    summary = [f"需要予測を使えるのは {len(available_df)} 商品です。"]
-    if period_ready_count > 0:
-        summary.append(f"このうち {period_ready_count} 商品は、保護期間の累積需要も計算できています。")
-    if not increased_df.empty:
-        top_up = increased_df.iloc[0]
-        summary.append(
-            f"実績平均より需要が増えそうなのは {len(increased_df)} 商品で、特に {top_up['product_name']} が上振れしそうです。"
-        )
-    if not decreased_df.empty:
-        top_down = decreased_df.iloc[0]
-        summary.append(
-            f"一方で、{top_down['product_name']} は実績平均より落ち着く見込みです。"
-        )
-    return " ".join(summary)
 
 
 def inject_pop_ui_styles() -> None:
@@ -987,37 +959,6 @@ def render_tables(metrics_df: pd.DataFrame, order_needed_df: pd.DataFrame, no_or
         st.info("発注不要の商品はありません。")
     else:
         st.dataframe(prepare_display_df(no_order_df, NO_ORDER_COLUMNS), use_container_width=True)
-
-
-def render_forecast_tab(
-    forecast_result: Dict[str, Any],
-    forecast_date: pd.Timestamp,
-) -> None:
-    """需要予測の概要を表示する。"""
-    st.subheader("需要予測の見方")
-    st.caption(f"予測対象日: {forecast_date.date()} / 発注計算は需要予測優先です")
-    st.caption("定期発注では、翌日予測だけでなくリードタイム + 発注周期 + 安全日数の累積需要を日換算して発注計算に使います。")
-    st.caption("需要予測を作れない商品は、自動で実績平均日販にフォールバックします。")
-    st.write(forecast_result["message"])
-
-    for note in forecast_result.get("notes", [])[:5]:
-        st.caption(note)
-
-    forecast_df = forecast_result.get("forecast_df")
-    if isinstance(forecast_df, pd.DataFrame) and not forecast_df.empty:
-        st.info(build_forecast_plain_summary(forecast_df))
-        st.caption("詳しい理由は、チャットで「お茶の予測はなぜ？」「需要予測を使うと何が変わる？」のように聞けます。")
-        st.dataframe(prepare_display_df(forecast_df, FORECAST_PRODUCT_COLUMNS), use_container_width=True)
-    else:
-        st.info("予測一覧はまだありません。")
-
-    coefficients_df = forecast_result.get("coefficients_df")
-    with st.expander("係数の詳細を見る", expanded=False):
-        st.caption("担当者向けの通常利用では見なくても大丈夫です。モデルの確認や説明資料づくりに使えます。")
-        if isinstance(coefficients_df, pd.DataFrame) and not coefficients_df.empty:
-            st.dataframe(coefficients_df[FORECAST_COEFFICIENT_COLUMNS], use_container_width=True)
-        else:
-            st.info("係数を表示できるモデルはまだ作成されていません。")
 
 
 def render_chat_section(
