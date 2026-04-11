@@ -178,6 +178,11 @@ def inject_pop_ui_styles() -> None:
             box-shadow: var(--shadow-soft);
         }
 
+        [data-testid="stFileUploader"] {
+            overflow: visible !important;
+            padding: 0.2rem 0.35rem 0.3rem;
+        }
+
         div[data-testid="stChatMessage"] {
             padding: 0.4rem 0.8rem;
         }
@@ -222,7 +227,7 @@ def inject_pop_ui_styles() -> None:
         [data-testid="stFileUploader"] label {
             display: block !important;
             line-height: 1.45 !important;
-            padding-top: 0.1rem;
+            padding: 0.18rem 0.1rem 0.12rem 0.18rem;
             margin-bottom: 0.25rem;
             overflow: visible !important;
         }

@@ -58,7 +58,7 @@ def main() -> None:
     )
     render_pop_hero()
 
-    uploaded_file = st.file_uploader(" 在庫CSVを選択してください", type="csv")
+    uploaded_file = st.file_uploader("在庫CSVを選択してください", type="csv")
     st.caption("まずは在庫CSVだけで使い始められます。需要予測を使いたい場合のみ、下の追加CSVを読み込みます。")
     with st.expander("需要予測を使う場合の追加CSV", expanded=False):
         sales_history_file = st.file_uploader("販売履歴CSV", type="csv")
