@@ -6,7 +6,6 @@ import pandas as pd
 import streamlit as st
 
 from chat import reset_chat_state
-from constants import SAMPLE_CSV
 from csv_loader import (
     apply_optional_defaults,
     convert_numeric_columns,
@@ -25,7 +24,7 @@ from ui import (
     inject_pop_ui_styles,
     render_chat_section,
     render_planning_tab,
-    render_pop_hero,
+    render_upload_focus_intro,
     render_summary,
     render_tables,
 )
@@ -52,24 +51,20 @@ def main() -> None:
     inject_pop_ui_styles()
 
     st.title("在庫発注計画アシスタント")
-    st.write(
-        "CSVを読み込むと、次回の発注判断を一覧とチャットの両方で確認できます。需要予測は必要なときだけ裏側で追加して使えます。"
-    )
-    render_pop_hero()
+    if st.session_state.get("uploaded_file_id") is None:
+        render_upload_focus_intro()
 
     uploaded_file = st.file_uploader("在庫CSVを選択してください", type="csv")
-    st.caption("まずは在庫CSVだけで使い始められます。需要予測を使いたい場合のみ、下の追加CSVを読み込みます。")
+
+    if uploaded_file is None:
+        st.session_state.uploaded_file_id = None
+        reset_chat_state()
+        return
+
+    st.caption("在庫CSVを読み込みました。需要予測を使いたい場合は、この下で追加CSVを読み込めます。")
     with st.expander("需要予測を使う場合の追加CSV", expanded=False):
         sales_history_file = st.file_uploader("販売履歴CSV", type="csv")
         external_factors_file = st.file_uploader("外部要因CSV", type="csv")
-
-    if uploaded_file is None:
-        reset_chat_state()
-        st.info("まずはCSVをアップロードしてください。")
-        st.subheader("サンプルCSV形式")
-        st.code(SAMPLE_CSV, language="csv")
-        st.caption("任意列として order_lot, min_order_qty, max_stock, unit_cost, priority_weight, supplier_id, category, location も使えます。")
-        return
 
     current_file_id = "|".join(
         [

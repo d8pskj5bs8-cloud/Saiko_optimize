@@ -299,6 +299,54 @@ def inject_pop_ui_styles() -> None:
             margin-bottom: 0.9rem;
         }
 
+        .upload-focus-card {
+            background:
+                radial-gradient(circle at top left, rgba(255,255,255,0.99) 0%, rgba(255,255,255,0.94) 38%, rgba(224,239,249,0.96) 100%);
+            border: 1px solid rgba(47, 128, 196, 0.16);
+            border-radius: 30px;
+            padding: 2rem 2rem 1.6rem;
+            margin: 1.2rem auto 1.4rem;
+            max-width: 860px;
+            box-shadow: 0 22px 54px rgba(58, 89, 112, 0.12);
+        }
+
+        .upload-focus-badge {
+            display: inline-block;
+            background: #dff0ff;
+            color: #245f8e !important;
+            border-radius: 999px;
+            padding: 0.4rem 0.9rem;
+            font-size: 0.85rem;
+            font-weight: 700;
+            margin-bottom: 0.8rem;
+        }
+
+        .upload-focus-title {
+            font-size: 2.2rem;
+            font-weight: 800;
+            line-height: 1.2;
+            margin-bottom: 0.75rem;
+            color: var(--text-main) !important;
+        }
+
+        .upload-focus-text {
+            font-size: 1.02rem;
+            line-height: 1.75;
+            color: var(--text-soft) !important;
+            margin-bottom: 0;
+        }
+
+        .upload-focus-note {
+            max-width: 860px;
+            margin: 0 auto 1rem;
+            color: #355167 !important;
+            font-size: 0.95rem;
+        }
+
+        .upload-focus-note strong {
+            color: #18384f !important;
+        }
+
         .chat-shell {
             background: linear-gradient(180deg, rgba(248, 251, 253, 0.96) 0%, rgba(255, 255, 255, 0.98) 100%);
             border: 1px solid rgba(86, 112, 134, 0.14);
@@ -601,6 +649,24 @@ def render_pop_hero() -> None:
                 今の在庫状況と次回発注計画を落ち着いて確認できます。
             </div>
         </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
+def render_upload_focus_intro() -> None:
+    """初回表示時に在庫CSVアップロードへ意識を集める。"""
+    st.markdown(
+        """
+        <div class="upload-focus-card">
+            <div class="upload-focus-badge">最初にやること</div>
+            <div class="upload-focus-title">在庫CSVを読み込んで、<br>発注判断の画面を始めます。</div>
+            <div class="upload-focus-text">
+                この画面で必要なのは在庫CSVのアップロードだけです。<br>
+                読み込み後に、在庫状況の確認や発注計画の検討へ進めます。
+            </div>
+        </div>
+        <div class="upload-focus-note"><strong>在庫CSVをアップロードすると次の画面へ進みます。</strong></div>
         """,
         unsafe_allow_html=True,
     )
