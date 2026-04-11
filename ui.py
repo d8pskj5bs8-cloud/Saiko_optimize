@@ -806,6 +806,7 @@ def render_order_sheet_tab(metrics_df: pd.DataFrame, forecast_date: pd.Timestamp
             data=workbook_bytes,
             file_name="order_sheets.xlsx",
             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            key="download_order_sheets_excel",
         )
 
     sorted_metrics_df = metrics_df.sort_values(["need_order", "priority_score", "product_name"], ascending=[False, False, True]).reset_index(drop=True)
@@ -932,6 +933,7 @@ def render_order_sheet_tab(metrics_df: pd.DataFrame, forecast_date: pd.Timestamp
         data=schedule_df.to_csv(index=False).encode("utf-8-sig"),
         file_name=f"order_sheet_{selected_row['product_id']}.csv",
         mime="text/csv",
+        key=f"download_order_sheet_{selected_row['product_id']}",
     )
 
 
@@ -953,6 +955,7 @@ def render_planning_tables(
             data=build_download_bytes(optimized_df, PLAN_COLUMNS),
             file_name="next_order_plan.csv",
             mime="text/csv",
+            key="download_optimized_plan_csv",
         )
 
     st.subheader("今回は優先しなかったもの")
@@ -983,9 +986,8 @@ def render_planning_tab(
     forecast_date: pd.Timestamp,
     order_policy: str,
 ) -> None:
-    """最適化結果を表示する。"""
+    """上段の発注計画シートを表示する。"""
     render_order_sheet_tab(metrics_df, forecast_date, order_policy)
-    render_planning_tables(optimized_df, skipped_df, risk_df, overstock_df)
 
 
 def render_tables(metrics_df: pd.DataFrame, order_needed_df: pd.DataFrame, no_order_df: pd.DataFrame) -> None:
@@ -1004,6 +1006,7 @@ def render_tables(metrics_df: pd.DataFrame, order_needed_df: pd.DataFrame, no_or
             data=build_download_bytes(order_needed_df, ORDER_CANDIDATE_COLUMNS),
             file_name="next_order_plan.csv",
             mime="text/csv",
+            key="download_order_candidates_csv",
         )
 
     st.subheader("発注不要商品一覧")
