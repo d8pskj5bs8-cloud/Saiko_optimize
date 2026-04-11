@@ -541,11 +541,14 @@ def inject_pop_ui_styles() -> None:
 
         [data-testid="stSidebar"] [data-testid="stRadio"] div[role="radiogroup"] {
             display: grid;
-            grid-template-columns: repeat(3, minmax(0, 1fr));
+            grid-template-columns: repeat(2, minmax(0, 1fr));
             gap: 0.55rem;
         }
 
         [data-testid="stSidebar"] [data-testid="stRadio"] div[role="radiogroup"] label {
+            display: flex;
+            align-items: center;
+            justify-content: center;
             margin: 0;
             min-height: 72px;
             padding: 0.8rem 0.75rem;
@@ -583,12 +586,19 @@ def inject_pop_ui_styles() -> None:
                 0 5px 10px rgba(122, 177, 156, 0.16);
         }
 
+        [data-testid="stSidebar"] [data-testid="stRadio"] div[role="radiogroup"] label > div {
+            width: 100%;
+            justify-content: center;
+        }
+
         [data-testid="stSidebar"] [data-testid="stRadio"] div[role="radiogroup"] label p {
             margin: 0;
+            width: 100%;
             font-size: 0.96rem;
             font-weight: 700;
             line-height: 1.35;
             text-align: center;
+            white-space: nowrap;
             color: var(--text-main);
         }
 
