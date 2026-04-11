@@ -935,10 +935,19 @@ def render_order_sheet_tab(metrics_df: pd.DataFrame, forecast_date: pd.Timestamp
     date_order = chart_df["日付ラベル"].tolist()
     bar_chart = (
         alt.Chart(chart_df)
-        .mark_bar(size=28, cornerRadiusTopLeft=4, cornerRadiusTopRight=4, color="#2f80c4")
+        .mark_bar(size=42, cornerRadiusTopLeft=4, cornerRadiusTopRight=4, color="#2f80c4")
         .encode(
-            x=alt.X("日付ラベル:N", title="日付", sort=date_order, axis=alt.Axis(labelAngle=0)),
-            y=alt.Y("推奨発注個数:Q", title="推奨発注個数"),
+            x=alt.X(
+                "日付ラベル:N",
+                title="日付",
+                sort=date_order,
+                axis=alt.Axis(labelAngle=0, labelFontSize=17, titleFontSize=19, labelPadding=12, titlePadding=16),
+            ),
+            y=alt.Y(
+                "推奨発注個数:Q",
+                title="推奨発注個数",
+                axis=alt.Axis(labelFontSize=17, titleFontSize=19, labelPadding=12, titlePadding=16),
+            ),
             tooltip=[
                 alt.Tooltip("日付:T", title="日付"),
                 alt.Tooltip("推奨発注個数:Q", title="推奨発注個数", format=",.0f"),
@@ -947,7 +956,7 @@ def render_order_sheet_tab(metrics_df: pd.DataFrame, forecast_date: pd.Timestamp
     )
     label_chart = (
         alt.Chart(chart_df)
-        .mark_text(dy=-8, color="#20313f", fontSize=18, fontWeight="bold")
+        .mark_text(dy=-10, color="#20313f", fontSize=22, fontWeight="bold")
         .encode(
             x=alt.X("日付ラベル:N", sort=date_order),
             y=alt.Y("推奨発注個数:Q"),
@@ -956,7 +965,7 @@ def render_order_sheet_tab(metrics_df: pd.DataFrame, forecast_date: pd.Timestamp
     )
     order_chart = (
         alt.layer(bar_chart, label_chart)
-        .properties(background="#ffffff")
+        .properties(background="#ffffff", height=420, padding={"top": 32, "right": 34, "bottom": 28, "left": 34})
         .configure_view(stroke="#d7e3ec", fill="#ffffff")
         .configure_axis(
             labelColor="#20313f",
@@ -964,6 +973,10 @@ def render_order_sheet_tab(metrics_df: pd.DataFrame, forecast_date: pd.Timestamp
             domainColor="#9fb4c6",
             gridColor="#e7eef4",
             tickColor="#9fb4c6",
+            labelFontSize=17,
+            titleFontSize=19,
+            labelPadding=12,
+            titlePadding=16,
         )
     )
 
