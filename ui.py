@@ -621,6 +621,7 @@ def inject_pop_ui_styles() -> None:
             text-orientation: upright;
             letter-spacing: 0.08em;
             white-space: normal;
+            transform: translateX(-0.18em);
             color: var(--text-main);
         }
 
