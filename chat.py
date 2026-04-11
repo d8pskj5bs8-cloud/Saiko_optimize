@@ -555,10 +555,13 @@ def answer_inventory_question(
                 f" 定期発注向けには {int(row.get('forecast_horizon_days', 0))} 日累積の予測需要"
                 f" {float(row['forecast_period_demand']):.2f} も使っています。"
             )
+        forecast_diff = row.get("forecast_diff", np.nan)
+        if pd.isna(forecast_diff):
+            forecast_diff = float(row["forecast_daily_sales"]) - float(row["avg_daily_sales"])
         return {
             "content": (
                 f"{product_name} の予測日販は {float(row['forecast_daily_sales']):.2f} です。"
-                f" 実績平均日販 {float(row['avg_daily_sales']):.2f} と比べると差は {float(row['forecast_diff']):+.2f} で、"
+                f" 実績平均日販 {float(row['avg_daily_sales']):.2f} と比べると差は {float(forecast_diff):+.2f} で、"
                 f"{reason_text}"
                 f" 発注計算では {row['demand_basis_label']} を使っています。"
                 f"{period_text}"

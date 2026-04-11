@@ -60,6 +60,8 @@ def calculate_inventory_metrics(
         raise ValueError(f"需要列 '{demand_column}' が見つかりません。")
 
     df["forecast_daily_sales"] = df.get("forecast_daily_sales", pd.Series(np.nan, index=df.index))
+    df["forecast_diff"] = df.get("forecast_diff", df["forecast_daily_sales"] - df["avg_daily_sales"])
+    df["forecast_change_ratio"] = df.get("forecast_change_ratio", pd.Series(np.nan, index=df.index))
     df["forecast_model_group"] = df.get("forecast_model_group", pd.Series("", index=df.index)).fillna("")
     df["forecast_reason_summary"] = df.get("forecast_reason_summary", pd.Series("", index=df.index)).fillna("")
     df["review_cycle_days"] = df.get("review_cycle_days", pd.Series(0, index=df.index)).fillna(0).clip(lower=0)
