@@ -817,7 +817,6 @@ def render_order_sheet_tab(metrics_df: pd.DataFrame, forecast_date: pd.Timestamp
         if st.button("前の商品", use_container_width=True):
             next_selection = product_options[previous_index]
             st.session_state[selection_state_key] = next_selection
-            st.session_state[selector_widget_key] = next_selection
             st.rerun()
     with selector_col2:
         selected_label = st.selectbox(
@@ -830,7 +829,6 @@ def render_order_sheet_tab(metrics_df: pd.DataFrame, forecast_date: pd.Timestamp
         if st.button("次の商品", use_container_width=True):
             next_selection = product_options[next_index]
             st.session_state[selection_state_key] = next_selection
-            st.session_state[selector_widget_key] = next_selection
             st.rerun()
 
     selected_index = product_options.index(selected_label)
