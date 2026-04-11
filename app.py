@@ -51,20 +51,28 @@ def main() -> None:
     inject_pop_ui_styles()
 
     st.title("在庫発注計画アシスタント")
-    if st.session_state.get("uploaded_file_id") is None:
-        render_upload_focus_intro()
+    top_output_container = st.container()
+    summary_container = st.container()
+    chat_container = st.container()
+    tabs_container = st.container()
+    uploader_container = st.container()
 
-    uploaded_file = st.file_uploader("在庫CSVを選択してください", type="csv")
+    with uploader_container:
+        if st.session_state.get("uploaded_file_id") is None:
+            render_upload_focus_intro()
+
+        uploaded_file = st.file_uploader("在庫CSVを選択してください", type="csv")
 
     if uploaded_file is None:
         st.session_state.uploaded_file_id = None
         reset_chat_state()
         return
 
-    st.caption("在庫CSVを読み込みました。需要予測を使いたい場合は、この下で追加CSVを読み込めます。")
-    with st.expander("需要予測を使う場合の追加CSV", expanded=False):
-        sales_history_file = st.file_uploader("販売履歴CSV", type="csv")
-        external_factors_file = st.file_uploader("外部要因CSV", type="csv")
+    with uploader_container:
+        st.caption("在庫CSVを読み込みました。需要予測を使いたい場合は、この下で追加CSVを読み込めます。")
+        with st.expander("需要予測を使う場合の追加CSV", expanded=False):
+            sales_history_file = st.file_uploader("販売履歴CSV", type="csv")
+            external_factors_file = st.file_uploader("外部要因CSV", type="csv")
 
     current_file_id = "|".join(
         [
@@ -263,26 +271,50 @@ def main() -> None:
     overstock_df = metrics_df[metrics_df["overstock_note"] != ""].copy()
     overstock_df = overstock_df.sort_values("excess_stock", ascending=False).reset_index(drop=True)
 
-    render_summary(metrics_df, order_needed_df, optimized_df, risk_df, overstock_df, budget_limit)
+    with top_output_container:
+        render_planning_tab(
+            metrics_df,
+            optimized_df,
+            skipped_df,
+            risk_df,
+            overstock_df,
+            forecast_date,
+            order_policy,
+            show_order_sheet=True,
+        )
 
-    render_chat_section(
-        filtered_df,
-        metrics_df,
-        order_needed_df,
-        optimized_df,
-        risk_df,
-        overstock_df,
-        use_llm_chat,
-        openai_api_key,
-    )
+    with summary_container:
+        render_summary(metrics_df, order_needed_df, optimized_df, risk_df, overstock_df, budget_limit)
 
-    planning_tab, table_tab = st.tabs(["おすすめ発注", "一覧"])
+    with chat_container:
+        render_chat_section(
+            filtered_df,
+            metrics_df,
+            order_needed_df,
+            optimized_df,
+            risk_df,
+            overstock_df,
+            use_llm_chat,
+            openai_api_key,
+        )
 
-    with planning_tab:
-        render_planning_tab(metrics_df, optimized_df, skipped_df, risk_df, overstock_df, forecast_date, order_policy)
+    with tabs_container:
+        planning_tab, table_tab = st.tabs(["発注候補一覧", "一覧"])
 
-    with table_tab:
-        render_tables(metrics_df, order_needed_df, no_order_df)
+        with planning_tab:
+            render_planning_tab(
+                metrics_df,
+                optimized_df,
+                skipped_df,
+                risk_df,
+                overstock_df,
+                forecast_date,
+                order_policy,
+                show_order_sheet=False,
+            )
+
+        with table_tab:
+            render_tables(metrics_df, order_needed_df, no_order_df)
 
 
 if __name__ == "__main__":

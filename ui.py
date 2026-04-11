@@ -858,7 +858,7 @@ def build_order_sheet_workbook_bytes(metrics_df: pd.DataFrame, forecast_date: pd
 
 def render_order_sheet_tab(metrics_df: pd.DataFrame, forecast_date: pd.Timestamp, order_policy: str) -> None:
     """商品ごとの発注計画シートを表示する。"""
-    st.subheader("発注計画シート")
+    st.subheader("Output")
     st.caption(f"現在の発注方式: {order_policy} / 1商品ずつシート形式で確認できます。")
 
     if metrics_df.empty:
@@ -929,18 +929,6 @@ def render_order_sheet_tab(metrics_df: pd.DataFrame, forecast_date: pd.Timestamp
         next_order_date_text = _format_schedule_date(pd.Timestamp(next_order_row.iloc[0]["日付"]))
         next_order_qty_text = f"{float(next_order_row.iloc[0]['推奨発注量']):,.1f}"
 
-    header_left, header_right = st.columns([3, 1])
-    with header_left:
-        st.markdown(f"### {selected_row['product_name']}")
-        st.caption(
-            f"カテゴリ: {selected_row['category']} / 仕入先: {selected_row['supplier']} / 需要基準: {selected_row['demand_basis_label']}"
-        )
-        st.markdown("**次回発注日**")
-        st.markdown(f"<div style='font-size:2.2rem;font-weight:800;margin:0.2rem 0 1.4rem;'>{next_order_date_text}</div>", unsafe_allow_html=True)
-    with header_right:
-        st.markdown("**次回発注量**")
-        st.markdown(f"<div style='font-size:2.2rem;font-weight:800;margin-top:0.2rem;'>{next_order_qty_text}</div>", unsafe_allow_html=True)
-
     chart_df = display_schedule_df.copy()
     chart_df["日付"] = pd.to_datetime(chart_df["日付"])
     chart_df["日付ラベル"] = chart_df["日付"].dt.strftime("%m/%d")
@@ -981,6 +969,19 @@ def render_order_sheet_tab(metrics_df: pd.DataFrame, forecast_date: pd.Timestamp
 
     st.caption("日付ごとの推奨発注個数を棒グラフで確認できます。")
     st.altair_chart(order_chart, use_container_width=True)
+
+    header_left, header_right = st.columns([3, 1])
+    with header_left:
+        st.markdown(f"### {selected_row['product_name']}")
+        st.caption(
+            f"カテゴリ: {selected_row['category']} / 仕入先: {selected_row['supplier']} / 需要基準: {selected_row['demand_basis_label']}"
+        )
+        st.markdown("**次回発注日**")
+        st.markdown(f"<div style='font-size:2.2rem;font-weight:800;margin:0.2rem 0 1.4rem;'>{next_order_date_text}</div>", unsafe_allow_html=True)
+    with header_right:
+        st.markdown("**次回発注量**")
+        st.markdown(f"<div style='font-size:2.2rem;font-weight:800;margin-top:0.2rem;'>{next_order_qty_text}</div>", unsafe_allow_html=True)
+
     st.dataframe(display_schedule_df, use_container_width=True, hide_index=True)
 
     st.download_button(
@@ -999,9 +1000,11 @@ def render_planning_tab(
     overstock_df: pd.DataFrame,
     forecast_date: pd.Timestamp,
     order_policy: str,
+    show_order_sheet: bool = True,
 ) -> None:
     """最適化結果を表示する。"""
-    render_order_sheet_tab(metrics_df, forecast_date, order_policy)
+    if show_order_sheet:
+        render_order_sheet_tab(metrics_df, forecast_date, order_policy)
 
     st.subheader("優先度の高いもの")
     if optimized_df.empty:
