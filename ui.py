@@ -128,7 +128,8 @@ def inject_pop_ui_styles() -> None:
         }
 
         [data-testid="stSidebar"] {
-            background: linear-gradient(180deg, #f9fcfe 0%, #eef5fa 100%);
+            background:
+                linear-gradient(180deg, #dbe7e4 0%, #c8d9d4 48%, #b7cbc5 100%);
             border-left: 1px solid var(--line);
         }
 
@@ -556,38 +557,38 @@ def inject_pop_ui_styles() -> None:
             margin: 0;
             min-height: 116px;
             padding: 0;
-            border: 1px solid rgba(114, 171, 152, 0.34);
-            border-radius: 16px;
+            border: 1px solid rgba(82, 137, 123, 0.36);
+            border-radius: 14px;
             background: linear-gradient(180deg, rgba(245, 252, 248, 0.96) 0%, rgba(231, 246, 238, 0.98) 100%);
             box-shadow:
-                0 4px 0 rgba(170, 210, 195, 0.92),
-                0 10px 20px rgba(122, 177, 156, 0.12);
+                0 4px 0 #8abda9,
+                0 10px 22px rgba(122, 177, 156, 0.28);
             transition: transform 0.12s ease, box-shadow 0.12s ease, border-color 0.12s ease, background 0.12s ease;
         }
 
         [data-testid="stSidebar"] [data-testid="stRadio"] div[role="radiogroup"] label:hover {
             transform: translateY(-1px);
-            border-color: rgba(94, 160, 138, 0.48);
-            background: linear-gradient(180deg, rgba(250, 254, 252, 0.98) 0%, rgba(236, 249, 242, 1) 100%);
+            border-color: rgba(82, 137, 123, 0.46);
+            background: linear-gradient(180deg, #f6fcf9 0%, #e3f7ee 48%, #cfefdf 100%);
             box-shadow:
-                0 5px 0 rgba(170, 210, 195, 0.92),
-                0 14px 24px rgba(122, 177, 156, 0.16);
+                0 5px 0 #8abda9,
+                0 14px 26px rgba(122, 177, 156, 0.30);
         }
 
         [data-testid="stSidebar"] [data-testid="stRadio"] div[role="radiogroup"] label[data-checked="true"] {
             transform: translateY(3px);
-            border-color: rgba(72, 140, 118, 0.90);
-            background: linear-gradient(180deg, rgba(208, 238, 224, 0.98) 0%, rgba(191, 229, 212, 1) 100%);
+            border-color: rgba(82, 137, 123, 0.52);
+            background: linear-gradient(180deg, #cbe8da 0%, #b8dccb 100%);
             box-shadow:
-                0 1px 0 rgba(126, 183, 163, 0.96),
-                0 6px 12px rgba(122, 177, 156, 0.16);
+                0 1px 0 #8abda9,
+                0 4px 10px rgba(122, 177, 156, 0.22);
         }
 
         [data-testid="stSidebar"] [data-testid="stRadio"] div[role="radiogroup"] label:active {
             transform: translateY(3px);
             box-shadow:
-                0 1px 0 rgba(126, 183, 163, 0.96),
-                0 5px 10px rgba(122, 177, 156, 0.16);
+                0 1px 0 #8abda9,
+                0 4px 10px rgba(122, 177, 156, 0.22);
         }
 
         [data-testid="stSidebar"] [data-testid="stRadio"] div[role="radiogroup"] label > div {
@@ -614,7 +615,7 @@ def inject_pop_ui_styles() -> None:
             margin: 0 auto;
             width: auto;
             font-size: 1rem;
-            font-weight: 700;
+            font-weight: 800;
             line-height: 1.15;
             text-align: center;
             writing-mode: vertical-rl;
@@ -622,11 +623,11 @@ def inject_pop_ui_styles() -> None:
             letter-spacing: 0.08em;
             white-space: normal;
             transform: translateX(-0.18em);
-            color: var(--text-main);
+            color: #1f4d42;
         }
 
         [data-testid="stSidebar"] [data-testid="stRadio"] div[role="radiogroup"] label[data-checked="true"] p {
-            color: #1f5a49;
+            color: #143d34;
         }
 
         .demand-mode-indicator {
