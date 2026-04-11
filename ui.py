@@ -807,11 +807,13 @@ def render_order_sheet_tab(metrics_df: pd.DataFrame, forecast_date: pd.Timestamp
         st.session_state[selection_state_key] = current_selection
 
     current_index = product_options.index(current_selection)
+    previous_index = (current_index - 1) % len(product_options)
+    next_index = (current_index + 1) % len(product_options)
 
     selector_col1, selector_col2, selector_col3 = st.columns([1, 4, 1])
     with selector_col1:
-        if st.button("前の商品", use_container_width=True, disabled=current_index <= 0):
-            st.session_state[selection_state_key] = product_options[current_index - 1]
+        if st.button("前の商品", use_container_width=True):
+            st.session_state[selection_state_key] = product_options[previous_index]
             st.rerun()
     with selector_col2:
         selected_label = st.selectbox(
@@ -822,8 +824,8 @@ def render_order_sheet_tab(metrics_df: pd.DataFrame, forecast_date: pd.Timestamp
         )
         st.session_state[selection_state_key] = selected_label
     with selector_col3:
-        if st.button("次の商品", use_container_width=True, disabled=current_index >= len(product_options) - 1):
-            st.session_state[selection_state_key] = product_options[current_index + 1]
+        if st.button("次の商品", use_container_width=True):
+            st.session_state[selection_state_key] = product_options[next_index]
             st.rerun()
 
     selected_index = product_options.index(selected_label)
