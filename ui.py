@@ -610,7 +610,8 @@ def inject_pop_ui_styles() -> None:
         }
 
         [data-testid="stSidebar"] [data-testid="stRadio"] div[role="radiogroup"] label p {
-            margin: 0;
+            display: block;
+            margin: 0 auto;
             width: auto;
             font-size: 1rem;
             font-weight: 700;
