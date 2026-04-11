@@ -24,6 +24,7 @@ from ui import (
     inject_pop_ui_styles,
     render_chat_section,
     render_planning_tab,
+    render_planning_tables,
     render_upload_focus_intro,
     render_summary,
     render_tables,
@@ -272,16 +273,7 @@ def main() -> None:
     overstock_df = overstock_df.sort_values("excess_stock", ascending=False).reset_index(drop=True)
 
     with top_output_container:
-        render_planning_tab(
-            metrics_df,
-            optimized_df,
-            skipped_df,
-            risk_df,
-            overstock_df,
-            forecast_date,
-            order_policy,
-            show_order_sheet=True,
-        )
+        render_planning_tab(metrics_df, optimized_df, skipped_df, risk_df, overstock_df, forecast_date, order_policy)
 
     with summary_container:
         render_summary(metrics_df, order_needed_df, optimized_df, risk_df, overstock_df, budget_limit)
@@ -302,16 +294,7 @@ def main() -> None:
         planning_tab, table_tab = st.tabs(["発注候補一覧", "一覧"])
 
         with planning_tab:
-            render_planning_tab(
-                metrics_df,
-                optimized_df,
-                skipped_df,
-                risk_df,
-                overstock_df,
-                forecast_date,
-                order_policy,
-                show_order_sheet=False,
-            )
+            render_planning_tables(optimized_df, skipped_df, risk_df, overstock_df)
 
         with table_tab:
             render_tables(metrics_df, order_needed_df, no_order_df)

@@ -992,20 +992,13 @@ def render_order_sheet_tab(metrics_df: pd.DataFrame, forecast_date: pd.Timestamp
     )
 
 
-def render_planning_tab(
-    metrics_df: pd.DataFrame,
+def render_planning_tables(
     optimized_df: pd.DataFrame,
     skipped_df: pd.DataFrame,
     risk_df: pd.DataFrame,
     overstock_df: pd.DataFrame,
-    forecast_date: pd.Timestamp,
-    order_policy: str,
-    show_order_sheet: bool = True,
 ) -> None:
-    """最適化結果を表示する。"""
-    if show_order_sheet:
-        render_order_sheet_tab(metrics_df, forecast_date, order_policy)
-
+    """発注候補やリスク一覧のテーブル群を表示する。"""
     st.subheader("優先度の高いもの")
     if optimized_df.empty:
         st.info("現在の条件では優先度の高いものはありません。")
@@ -1036,6 +1029,20 @@ def render_planning_tab(
         st.info("過剰在庫の可能性が高い商品はありません。")
     else:
         st.dataframe(prepare_display_df(overstock_df, OVERSTOCK_COLUMNS), use_container_width=True)
+
+
+def render_planning_tab(
+    metrics_df: pd.DataFrame,
+    optimized_df: pd.DataFrame,
+    skipped_df: pd.DataFrame,
+    risk_df: pd.DataFrame,
+    overstock_df: pd.DataFrame,
+    forecast_date: pd.Timestamp,
+    order_policy: str,
+) -> None:
+    """最適化結果を表示する。"""
+    render_order_sheet_tab(metrics_df, forecast_date, order_policy)
+    render_planning_tables(optimized_df, skipped_df, risk_df, overstock_df)
 
 
 def render_tables(metrics_df: pd.DataFrame, order_needed_df: pd.DataFrame, no_order_df: pd.DataFrame) -> None:
