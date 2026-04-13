@@ -31,20 +31,20 @@ from ui import (
 )
 
 
-def get_openai_api_key_default() -> str:
+def get_gemini_api_key_default() -> str:
     """secrets.toml が無い環境でも API キー初期値を安全に取得する。"""
-    session_value = str(st.session_state.get("openai_api_key", "")).strip()
+    session_value = str(st.session_state.get("gemini_api_key", "")).strip()
     if session_value:
         return session_value
 
     try:
-        secret_value = str(st.secrets.get("OPENAI_API_KEY", "")).strip()
+        secret_value = str(st.secrets.get("GEMINI_API_KEY", "")).strip()
         if secret_value:
             return secret_value
     except Exception:
         pass
 
-    return str(os.getenv("OPENAI_API_KEY", "")).strip()
+    return str(os.getenv("GEMINI_API_KEY", "")).strip()
 
 
 def main() -> None:
@@ -186,19 +186,19 @@ def main() -> None:
         step=1000,
         help="0 を指定すると予算上限なしで全候補を採用します。",
     )
-    api_key_default = get_openai_api_key_default()
+    api_key_default = get_gemini_api_key_default()
     with st.sidebar.expander("チャットの詳細設定", expanded=False):
-        openai_api_key = st.text_input(
-            "OpenAI APIキー",
+        gemini_api_key = st.text_input(
+            "Gemini APIキー",
             value=api_key_default,
             type="password",
-            help="設定するとチャットで GPT の関数呼び出しを使えます。未設定時は従来のルールベース回答です。",
+            help="設定するとチャットで Gemini を使えます。未設定時は従来のルールベース回答です。",
         ).strip()
-        st.session_state.openai_api_key = openai_api_key
+        st.session_state.gemini_api_key = gemini_api_key
         use_llm_chat = st.toggle(
-            "GPTチャットを使う",
-            value=bool(openai_api_key),
-            disabled=not bool(openai_api_key),
+            "Geminiチャットを使う",
+            value=bool(gemini_api_key),
+            disabled=not bool(gemini_api_key),
             help="APIキー設定後に有効化できます。",
         )
     st.sidebar.caption("CSVに任意列がない場合は、発注単位1、最小発注数0、原価1000円、月次保管コスト率2%、重要度1.0で計算します。")
@@ -286,7 +286,7 @@ def main() -> None:
             risk_df,
             overstock_df,
             use_llm_chat,
-            openai_api_key,
+            gemini_api_key,
         )
 
     with tabs_container:

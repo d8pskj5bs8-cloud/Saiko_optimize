@@ -1024,7 +1024,7 @@ def render_chat_section(
     risk_df: pd.DataFrame,
     overstock_df: pd.DataFrame,
     use_llm_chat: bool,
-    openai_api_key: str,
+    gemini_api_key: str,
 ) -> None:
     """チャットUIを表示する。"""
     initialize_chat_state()
@@ -1051,11 +1051,11 @@ def render_chat_section(
                     optimized_df,
                     risk_df,
                     overstock_df,
-                    openai_api_key,
+                    gemini_api_key,
                 )
             except Exception as exc:
                 answer = {
-                    "content": f"GPT連携でエラーが発生したため、ルールベース回答に切り替えます。詳細: {exc}",
+                    "content": f"Gemini連携でエラーが発生したため、ルールベース回答に切り替えます。詳細: {exc}",
                     "dataframe": None,
                 }
         else:

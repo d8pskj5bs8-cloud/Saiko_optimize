@@ -1,5 +1,7 @@
 import json
 import re
+import urllib.error
+import urllib.request
 from typing import Any, Dict, List, Optional
 
 import numpy as np
@@ -8,8 +10,8 @@ import streamlit as st
 
 from constants import (
     FORECAST_PRODUCT_COLUMNS,
+    GEMINI_MODEL,
     LLM_SYSTEM_PROMPT,
-    OPENAI_MODEL,
     OVERSTOCK_COLUMNS,
     PLAN_COLUMNS,
     RISK_COLUMNS,
@@ -17,11 +19,6 @@ from constants import (
     WELCOME_MESSAGE,
 )
 from inventory import calculate_inventory_metrics, format_days_left, optimize_order_plan, prepare_display_df
-
-try:
-    from openai import OpenAI
-except ImportError:
-    OpenAI = None
 
 
 def initialize_chat_state() -> None:
@@ -358,91 +355,120 @@ def execute_inventory_tool(
     return json.dumps({"error": f"unknown tool: {name}"}, ensure_ascii=False)
 
 
-def get_openai_tools() -> List[Dict[str, Any]]:
-    """Responses API に渡すツール定義を返す。"""
-    return [
-        {
-            "type": "function",
-            "name": "get_inventory_summary",
-            "description": "在庫全体の要約、件数、重要な商品、欠品リスク件数を取得する。",
-            "strict": True,
-            "parameters": {
-                "type": "object",
-                "properties": {},
-                "required": [],
-                "additionalProperties": False,
-            },
+def build_llm_context(
+    message: str,
+    raw_df: pd.DataFrame,
+    metrics_df: pd.DataFrame,
+    order_needed_df: pd.DataFrame,
+    optimized_df: pd.DataFrame,
+    risk_df: pd.DataFrame,
+    overstock_df: pd.DataFrame,
+) -> Dict[str, Any]:
+    """Gemini に渡す在庫コンテキストを組み立てる。"""
+    product_name = extract_product_name(message, metrics_df)
+    matched_products = metrics_df.iloc[0:0].copy()
+    if product_name is not None:
+        matched_products = metrics_df[metrics_df["product_name"] == product_name].copy().reset_index(drop=True)
+
+    budget = extract_budget(message)
+    simulated_summary: Optional[Dict[str, Any]] = None
+    safety_days = extract_safety_days(message)
+    if safety_days is not None:
+        simulated_input = raw_df.copy()
+        simulated_input["safety_days"] = safety_days
+        demand_column = "selected_daily_sales" if "selected_daily_sales" in simulated_input.columns else "avg_daily_sales"
+        demand_label = (
+            str(simulated_input["demand_basis_label"].iloc[0])
+            if "demand_basis_label" in simulated_input.columns
+            else "実績平均"
+        )
+        order_policy = str(metrics_df["order_policy_label"].iloc[0]) if "order_policy_label" in metrics_df.columns else "都度発注"
+        simulated_df = calculate_inventory_metrics(simulated_input, demand_column, demand_label, order_policy)
+        simulated_df = simulated_df.sort_values(["priority_score", "days_left"], ascending=[False, True]).reset_index(drop=True)
+        simulated_order_df = simulated_df[simulated_df["need_order"]].copy().reset_index(drop=True)
+        simulated_summary = {
+            "safety_days": safety_days,
+            "message": build_simulation_message(simulated_df, safety_days),
+            "order_needed_count": len(simulated_order_df),
+            "items": [serialize_product_row(row) for _, row in simulated_order_df.head(10).iterrows()],
+        }
+
+    budget_plan: Optional[Dict[str, Any]] = None
+    if budget is not None:
+        selected_df, skipped_df = optimize_order_plan(order_needed_df, budget)
+        budget_plan = {
+            "budget": budget,
+            "message": build_budget_plan_message(selected_df, budget, skipped_df),
+            "selected_items": [serialize_product_row(row) for _, row in selected_df.head(10).iterrows()],
+            "skipped_items": [serialize_product_row(row) for _, row in skipped_df.head(10).iterrows()],
+        }
+
+    return {
+        "user_question": message,
+        "inventory_summary": build_llm_inventory_summary(metrics_df, order_needed_df, optimized_df, risk_df, overstock_df),
+        "matched_products": [serialize_product_row(row) for _, row in matched_products.head(5).iterrows()],
+        "top_order_candidates": [serialize_product_row(row) for _, row in order_needed_df.head(15).iterrows()],
+        "current_selected_plan": [serialize_product_row(row) for _, row in optimized_df.head(15).iterrows()],
+        "risk_items": [serialize_product_row(row) for _, row in risk_df.head(15).iterrows()],
+        "overstock_items": [serialize_product_row(row) for _, row in overstock_df.head(15).iterrows()],
+        "all_suppliers": sorted(metrics_df["supplier"].astype(str).unique().tolist())[:20],
+        "forecast_available": bool(metrics_df["forecast_daily_sales"].notna().any()),
+        "budget_plan_if_requested": budget_plan,
+        "simulation_if_requested": simulated_summary,
+    }
+
+
+def call_gemini_api(message: str, context: Dict[str, Any], api_key: str) -> str:
+    """Gemini API を呼び出して回答文を取得する。"""
+    prompt = (
+        "以下のJSONだけを根拠に、日本語で簡潔かつ実務的に回答してください。"
+        " 数値や商品名を捏造せず、判断根拠は JSON 内の事実だけに限定してください。"
+        " 情報が足りない場合は、足りない点を短く伝えてください。\n\n"
+        f"ユーザー質問:\n{message}\n\n"
+        f"在庫コンテキストJSON:\n{json.dumps(context, ensure_ascii=False)}"
+    )
+    request_body = {
+        "systemInstruction": {
+            "parts": [{"text": LLM_SYSTEM_PROMPT}],
         },
-        {
-            "type": "function",
-            "name": "get_product_info",
-            "description": "指定した商品名に一致する商品の在庫状況と発注情報を取得する。部分一致で検索する。",
-            "strict": True,
-            "parameters": {
-                "type": "object",
-                "properties": {
-                    "product_query": {
-                        "type": "string",
-                        "description": "商品名またはその一部。",
-                    }
-                },
-                "required": ["product_query"],
-                "additionalProperties": False,
-            },
+        "contents": [
+            {
+                "role": "user",
+                "parts": [{"text": prompt}],
+            }
+        ],
+        "generationConfig": {
+            "temperature": 0.2,
         },
-        {
-            "type": "function",
-            "name": "get_order_plan",
-            "description": "必要に応じて予算を指定し、おすすめ発注案を取得する。budget が null なら予算上限なし。",
-            "strict": True,
-            "parameters": {
-                "type": "object",
-                "properties": {
-                    "budget": {
-                        "type": ["number", "null"],
-                        "description": "予算上限（円）。不要なら null。",
-                    }
-                },
-                "required": ["budget"],
-                "additionalProperties": False,
-            },
-        },
-        {
-            "type": "function",
-            "name": "get_risk_items",
-            "description": "欠品リスクの高い商品一覧を取得する。risk_level は all, 高, 中 のいずれか。",
-            "strict": True,
-            "parameters": {
-                "type": "object",
-                "properties": {
-                    "risk_level": {
-                        "type": "string",
-                        "enum": ["all", "高", "中"],
-                        "description": "取得したいリスクレベル。",
-                    }
-                },
-                "required": ["risk_level"],
-                "additionalProperties": False,
-            },
-        },
-        {
-            "type": "function",
-            "name": "simulate_safety_days",
-            "description": "安全在庫日数を変更した場合の発注状況を試算する。",
-            "strict": True,
-            "parameters": {
-                "type": "object",
-                "properties": {
-                    "safety_days": {
-                        "type": "integer",
-                        "description": "試算したい安全在庫日数。",
-                    }
-                },
-                "required": ["safety_days"],
-                "additionalProperties": False,
-            },
-        },
-    ]
+    }
+    request = urllib.request.Request(
+        url=f"https://generativelanguage.googleapis.com/v1beta/models/{GEMINI_MODEL}:generateContent?key={api_key}",
+        data=json.dumps(request_body).encode("utf-8"),
+        headers={"Content-Type": "application/json"},
+        method="POST",
+    )
+
+    try:
+        with urllib.request.urlopen(request, timeout=30) as response:
+            payload = json.loads(response.read().decode("utf-8"))
+    except urllib.error.HTTPError as exc:
+        error_body = exc.read().decode("utf-8", errors="ignore")
+        raise RuntimeError(f"Gemini API エラー ({exc.code}): {error_body}") from exc
+    except urllib.error.URLError as exc:
+        raise RuntimeError(f"Gemini API に接続できませんでした: {exc.reason}") from exc
+
+    candidates = payload.get("candidates", [])
+    for candidate in candidates:
+        content = candidate.get("content", {})
+        parts = content.get("parts", [])
+        text_parts = [part.get("text", "").strip() for part in parts if part.get("text")]
+        if text_parts:
+            return "\n".join(text_parts).strip()
+
+    prompt_feedback = payload.get("promptFeedback")
+    if prompt_feedback:
+        raise RuntimeError(f"Gemini が応答を返しませんでした: {json.dumps(prompt_feedback, ensure_ascii=False)}")
+    raise RuntimeError("Gemini が有効なテキスト応答を返しませんでした。")
 
 
 def answer_inventory_with_llm(
@@ -455,56 +481,21 @@ def answer_inventory_with_llm(
     overstock_df: pd.DataFrame,
     api_key: str,
 ) -> Dict[str, Any]:
-    """OpenAI Responses API と function calling を使って回答する。"""
-    if OpenAI is None:
-        return {
-            "content": "OpenAI SDK が見つからないため GPT 連携を使えません。`pip install -r requirements.txt` を実行してください。",
-            "dataframe": None,
-        }
+    """Gemini API を使って回答する。"""
+    if not api_key.strip():
+        return {"content": "Gemini APIキーが未設定のため、Gemini 連携を使えません。", "dataframe": None}
 
-    client = OpenAI(api_key=api_key)
-    tools = get_openai_tools()
-    conversation_input: List[Dict[str, Any]] = [
-        {"role": "system", "content": [{"type": "input_text", "text": LLM_SYSTEM_PROMPT}]},
-        {"role": "user", "content": [{"type": "input_text", "text": message}]},
-    ]
-
-    for _ in range(5):
-        response = client.responses.create(
-            model=OPENAI_MODEL,
-            input=conversation_input,
-            tools=tools,
-        )
-
-        function_calls = [item for item in response.output if item.type == "function_call"]
-        if not function_calls:
-            return {"content": response.output_text or build_help_message(), "dataframe": None}
-
-        for tool_call in function_calls:
-            arguments = json.loads(tool_call.arguments)
-            result = execute_inventory_tool(
-                tool_call.name,
-                arguments,
-                raw_df,
-                metrics_df,
-                order_needed_df,
-                optimized_df,
-                risk_df,
-                overstock_df,
-            )
-            conversation_input.append(tool_call.model_dump())
-            conversation_input.append(
-                {
-                    "type": "function_call_output",
-                    "call_id": tool_call.call_id,
-                    "output": result,
-                }
-            )
-
-    return {
-        "content": "ツール呼び出しが多くなりすぎたため、回答を完了できませんでした。質問を少し具体的にしてもう一度試してください。",
-        "dataframe": None,
-    }
+    context = build_llm_context(
+        message,
+        raw_df,
+        metrics_df,
+        order_needed_df,
+        optimized_df,
+        risk_df,
+        overstock_df,
+    )
+    content = call_gemini_api(message, context, api_key.strip())
+    return {"content": content or build_help_message(), "dataframe": None}
 
 
 def answer_inventory_question(
