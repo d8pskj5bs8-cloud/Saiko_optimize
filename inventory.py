@@ -5,6 +5,27 @@ import numpy as np
 import pandas as pd
 
 
+INVENTORY_MODE_SETTINGS = {
+    "コスト重視": {
+        "safety_multiplier": 0.9,
+        "description": "安全性を少しだけ抑えつつ、過剰在庫と保管コストを減らしやすい設定です。",
+    },
+    "標準": {
+        "safety_multiplier": 1.0,
+        "description": "CSVの安全在庫日数をそのまま使う標準設定です。",
+    },
+    "安全重視": {
+        "safety_multiplier": 1.15,
+        "description": "欠品リスクを下げるために、在庫をやや厚めに持つ設定です。",
+    },
+}
+
+
+def get_inventory_mode_settings(mode_label: str) -> dict:
+    """在庫モードごとの設定値を返す。"""
+    return INVENTORY_MODE_SETTINGS.get(mode_label, INVENTORY_MODE_SETTINGS["標準"])
+
+
 def adjust_order_quantity(
     base_qty: float,
     current_stock: float,
@@ -53,12 +74,14 @@ def calculate_inventory_metrics(
     demand_column: str = "avg_daily_sales",
     demand_label: str = "実績平均",
     order_policy: str = "都度発注",
+    inventory_mode: str = "標準",
 ) -> pd.DataFrame:
     """在庫関連指標と発注条件をまとめて計算する。"""
     df = df.copy()
     if demand_column not in df.columns:
         raise ValueError(f"需要列 '{demand_column}' が見つかりません。")
 
+    mode_settings = get_inventory_mode_settings(inventory_mode)
     df["forecast_daily_sales"] = df.get("forecast_daily_sales", pd.Series(np.nan, index=df.index))
     df["forecast_diff"] = df.get("forecast_diff", df["forecast_daily_sales"] - df["avg_daily_sales"])
     df["forecast_change_ratio"] = df.get("forecast_change_ratio", pd.Series(np.nan, index=df.index))
@@ -67,11 +90,15 @@ def calculate_inventory_metrics(
     df["review_cycle_days"] = df.get("review_cycle_days", pd.Series(0, index=df.index)).fillna(0).clip(lower=0)
     df["max_stock"] = df.get("max_stock", pd.Series(np.inf, index=df.index)).fillna(np.inf)
     df["order_policy_label"] = order_policy
+    df["inventory_mode_label"] = inventory_mode
+    df["inventory_mode_safety_multiplier"] = float(mode_settings["safety_multiplier"])
+    df["inventory_mode_description"] = str(mode_settings["description"])
     df["demand_basis_label"] = demand_label
     df["demand_basis_value"] = df[demand_column].fillna(df["avg_daily_sales"]).clip(lower=0)
-    df["safety_stock"] = df["demand_basis_value"] * df["safety_days"]
+    df["effective_safety_days"] = (df["safety_days"] * df["inventory_mode_safety_multiplier"]).clip(lower=0)
+    df["safety_stock"] = df["demand_basis_value"] * df["effective_safety_days"]
     df["reorder_point"] = df["demand_basis_value"] * df["lead_time_days"] + df["safety_stock"]
-    df["target_cover_days"] = df["lead_time_days"] + df["review_cycle_days"] + df["safety_days"]
+    df["target_cover_days"] = df["lead_time_days"] + df["review_cycle_days"] + df["effective_safety_days"]
     df["target_stock"] = df["demand_basis_value"] * df["target_cover_days"]
     if order_policy == "定期発注":
         df["planning_target_label"] = "目標在庫量"
@@ -106,7 +133,7 @@ def calculate_inventory_metrics(
     df["risk_level"] = np.select(
         [
             df["days_left"] <= threshold_days,
-            df["days_left"] <= (threshold_days + df["safety_days"]),
+            df["days_left"] <= (threshold_days + df["effective_safety_days"]),
         ],
         ["高", "中"],
         default="低",
@@ -120,7 +147,7 @@ def calculate_inventory_metrics(
         0,
     ).round(0)
     df["overstock_note"] = np.where(
-        (df["days_left"] > (threshold_days + df["safety_days"] + 14))
+        (df["days_left"] > (threshold_days + df["effective_safety_days"] + 14))
         & (df["current_stock"] > df["planning_target_value"]),
         "在庫日数が長く、過剰在庫の可能性があります",
         "",
@@ -178,6 +205,8 @@ def prepare_display_df(df: pd.DataFrame, columns: List[str]) -> pd.DataFrame:
         "target_stock",
         "planning_target_value",
         "review_cycle_days",
+        "effective_safety_days",
+        "inventory_mode_safety_multiplier",
     ]:
         if numeric_column in display_df.columns:
             display_df[numeric_column] = display_df[numeric_column].apply(

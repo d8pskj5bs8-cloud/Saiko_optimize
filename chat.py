@@ -21,6 +21,23 @@ from constants import (
 from inventory import calculate_inventory_metrics, format_days_left, optimize_order_plan, prepare_display_df
 
 
+def summarize_gemini_error(error_message: str) -> str:
+    """Gemini API の生エラーを短い日本語メッセージに整える。"""
+    normalized = str(error_message)
+    if "Gemini API エラー (429)" in normalized and "quota" in normalized.lower():
+        return (
+            "Gemini API の利用上限に達したか、無料枠/課金設定が有効になっていません。"
+            " Google AI Studio 側で請求設定と API の利用枠を確認してください。"
+        )
+    if "Gemini API エラー (403)" in normalized:
+        return "Gemini API キーは読めていますが、権限不足か API の利用設定に問題があります。"
+    if "Gemini API エラー (401)" in normalized:
+        return "Gemini API キーが無効か、入力されたキーが正しくありません。"
+    if "Gemini API に接続できませんでした" in normalized:
+        return "Gemini API に接続できませんでした。ネットワークまたは接続先設定を確認してください。"
+    return normalized
+
+
 def initialize_chat_state() -> None:
     """チャット履歴を初期化する。"""
     if "chat_messages" not in st.session_state:
@@ -119,10 +136,12 @@ def build_product_message(row: pd.Series) -> str:
 
 def build_reason_message(row: pd.Series) -> str:
     """発注理由の説明を作る。"""
+    effective_safety_days = float(row.get("effective_safety_days", row["safety_days"]))
+    mode_text = str(row.get("inventory_mode_label", "標準"))
     if row.get("order_policy_label") == "定期発注":
         target_expression = (
             f"目標在庫量は 需要 {row['demand_basis_value']:.2f} × "
-            f"(リードタイム {row['lead_time_days']}日 + 発注周期 {row['review_cycle_days']}日 + 安全在庫日数 {row['safety_days']}日)"
+            f"(リードタイム {row['lead_time_days']}日 + 発注周期 {row['review_cycle_days']}日 + 補正後安全在庫日数 {effective_safety_days:.2f}日)"
             f" = {row['target_stock']:.1f} です。"
         )
         if not pd.isna(row.get("forecast_period_demand", np.nan)):
@@ -136,8 +155,9 @@ def build_reason_message(row: pd.Series) -> str:
             f"安全在庫 {row['safety_stock']:.1f} = {row['reorder_point']:.1f} です。"
         )
     return (
-        f"{row['product_name']} の安全在庫は {row['demand_basis_label']}日販 {row['demand_basis_value']:.2f} × {row['safety_days']}日 = "
-        f"{row['safety_stock']:.1f} です。発注方式は {row.get('order_policy_label', '都度発注')} で、{target_expression}"
+        f"{row['product_name']} の安全在庫は {row['demand_basis_label']}日販 {row['demand_basis_value']:.2f} × "
+        f"補正後安全在庫日数 {effective_safety_days:.2f}日 = {row['safety_stock']:.1f} です。"
+        f" 在庫モードは {mode_text}、発注方式は {row.get('order_policy_label', '都度発注')} で、{target_expression}"
         f" そこから基本推奨発注数は {int(row['base_recommended_order'])} 個になり、"
         f" 発注単位 {int(row['order_unit'])} と最小発注数 {int(row['min_order_qty'])} を反映した最終候補は"
         f" {int(row['adjusted_order'])} 個です。優先度スコアは {row['priority_score']:.2f} です。"
@@ -218,6 +238,7 @@ def serialize_product_row(row: pd.Series) -> Dict[str, Any]:
         "product_name": str(row["product_name"]),
         "supplier": str(row["supplier"]),
         "order_policy_label": str(row.get("order_policy_label", "都度発注")),
+        "inventory_mode_label": str(row.get("inventory_mode_label", "標準")),
         "current_stock": float(row["current_stock"]),
         "avg_daily_sales": float(row["avg_daily_sales"]),
         "forecast_daily_sales": None if pd.isna(row.get("forecast_daily_sales", np.nan)) else round(float(row["forecast_daily_sales"]), 2),
@@ -232,6 +253,7 @@ def serialize_product_row(row: pd.Series) -> Dict[str, Any]:
         else int(float(row["forecast_horizon_days"])),
         "lead_time_days": float(row["lead_time_days"]),
         "safety_days": float(row["safety_days"]),
+        "effective_safety_days": round(float(row.get("effective_safety_days", row["safety_days"])), 2),
         "review_cycle_days": float(row.get("review_cycle_days", 0)),
         "safety_stock": round(float(row["safety_stock"]), 1),
         "reorder_point": round(float(row["reorder_point"]), 1),
@@ -339,7 +361,8 @@ def execute_inventory_tool(
         demand_column = "selected_daily_sales" if "selected_daily_sales" in simulated_input.columns else "avg_daily_sales"
         demand_label = str(simulated_input["demand_basis_label"].iloc[0]) if "demand_basis_label" in simulated_input.columns else "実績平均"
         order_policy = str(metrics_df["order_policy_label"].iloc[0]) if "order_policy_label" in metrics_df.columns else "都度発注"
-        simulated_df = calculate_inventory_metrics(simulated_input, demand_column, demand_label, order_policy)
+        inventory_mode = str(metrics_df["inventory_mode_label"].iloc[0]) if "inventory_mode_label" in metrics_df.columns else "標準"
+        simulated_df = calculate_inventory_metrics(simulated_input, demand_column, demand_label, order_policy, inventory_mode)
         simulated_df = simulated_df.sort_values(["priority_score", "days_left"], ascending=[False, True]).reset_index(drop=True)
         simulated_order_df = simulated_df[simulated_df["need_order"]].copy().reset_index(drop=True)
         return json.dumps(
@@ -383,7 +406,8 @@ def build_llm_context(
             else "実績平均"
         )
         order_policy = str(metrics_df["order_policy_label"].iloc[0]) if "order_policy_label" in metrics_df.columns else "都度発注"
-        simulated_df = calculate_inventory_metrics(simulated_input, demand_column, demand_label, order_policy)
+        inventory_mode = str(metrics_df["inventory_mode_label"].iloc[0]) if "inventory_mode_label" in metrics_df.columns else "標準"
+        simulated_df = calculate_inventory_metrics(simulated_input, demand_column, demand_label, order_policy, inventory_mode)
         simulated_df = simulated_df.sort_values(["priority_score", "days_left"], ascending=[False, True]).reset_index(drop=True)
         simulated_order_df = simulated_df[simulated_df["need_order"]].copy().reset_index(drop=True)
         simulated_summary = {
@@ -628,7 +652,8 @@ def answer_inventory_question(
         demand_column = "selected_daily_sales" if "selected_daily_sales" in simulated_input.columns else "avg_daily_sales"
         demand_label = str(metrics_df["demand_basis_label"].iloc[0]) if "demand_basis_label" in metrics_df.columns else "実績平均"
         order_policy = str(metrics_df["order_policy_label"].iloc[0]) if "order_policy_label" in metrics_df.columns else "都度発注"
-        simulated_df = calculate_inventory_metrics(simulated_input, demand_column, demand_label, order_policy)
+        inventory_mode = str(metrics_df["inventory_mode_label"].iloc[0]) if "inventory_mode_label" in metrics_df.columns else "標準"
+        simulated_df = calculate_inventory_metrics(simulated_input, demand_column, demand_label, order_policy, inventory_mode)
         simulated_df = simulated_df.sort_values(["priority_score", "days_left"], ascending=[False, True]).reset_index(drop=True)
         simulated_order_df = simulated_df[simulated_df["need_order"]].copy()
         return {

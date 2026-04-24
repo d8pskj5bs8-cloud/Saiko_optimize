@@ -19,7 +19,12 @@ from csv_loader import (
     validate_required_values,
 )
 from forecasting import generate_demand_forecast
-from inventory import calculate_inventory_metrics, optimize_order_plan
+from inventory import (
+    INVENTORY_MODE_SETTINGS,
+    calculate_inventory_metrics,
+    get_inventory_mode_settings,
+    optimize_order_plan,
+)
 from ui import (
     inject_pop_ui_styles,
     render_chat_section,
@@ -99,6 +104,13 @@ def main() -> None:
         options=["都度発注", "定期発注"],
         help="都度発注は発注点ベース、定期発注は次回見直しまで持たせる目標在庫量ベースで計算します。",
     )
+    inventory_mode = st.sidebar.selectbox(
+        "在庫モード",
+        options=list(INVENTORY_MODE_SETTINGS.keys()),
+        index=1,
+        help="コスト重視は在庫を少し軽めに、標準は現状どおり、安全重視は欠品リスクを抑える方向で計算します。",
+    )
+    inventory_mode_settings = get_inventory_mode_settings(inventory_mode)
 
     missing_columns = validate_columns(df, order_policy)
     if missing_columns:
@@ -204,6 +216,7 @@ def main() -> None:
     st.sidebar.caption("CSVに任意列がない場合は、発注単位1、最小発注数0、原価1000円、月次保管コスト率2%、重要度1.0で計算します。")
     if order_policy == "定期発注":
         st.sidebar.caption("定期発注では review_cycle_days を使って、次回見直しまで持つ目標在庫量を計算します。")
+    st.sidebar.caption(inventory_mode_settings["description"])
     st.sidebar.caption("発注計算では需要予測を優先し、作れない商品だけ実績平均日販に戻します。")
 
     filtered_df = df[df["supplier"].astype(str).isin(selected_suppliers)].copy()
@@ -248,7 +261,9 @@ def main() -> None:
         filtered_df["forecast_period_demand"] = np.nan
     if "forecast_horizon_days" not in filtered_df.columns:
         filtered_df["forecast_horizon_days"] = (
-            filtered_df["lead_time_days"] + filtered_df["review_cycle_days"] + filtered_df["safety_days"]
+            filtered_df["lead_time_days"]
+            + filtered_df["review_cycle_days"]
+            + (filtered_df["safety_days"] * float(inventory_mode_settings["safety_multiplier"]))
         ).clip(lower=1)
     if "forecast_effective_daily_sales" not in filtered_df.columns:
         filtered_df["forecast_effective_daily_sales"] = np.nan
@@ -257,7 +272,13 @@ def main() -> None:
     filtered_df["selected_daily_sales"] = filtered_df[forecast_basis_column].fillna(filtered_df["avg_daily_sales"])
 
     try:
-        metrics_df = calculate_inventory_metrics(filtered_df, "selected_daily_sales", "需要予測優先", order_policy)
+        metrics_df = calculate_inventory_metrics(
+            filtered_df,
+            "selected_daily_sales",
+            "需要予測優先",
+            order_policy,
+            inventory_mode,
+        )
     except Exception as exc:
         st.error(f"在庫指標の計算中に予期せぬエラーが発生しました: {exc}")
         return

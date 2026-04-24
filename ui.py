@@ -5,7 +5,12 @@ import altair as alt
 import pandas as pd
 import streamlit as st
 
-from chat import answer_inventory_question, answer_inventory_with_llm, initialize_chat_state
+from chat import (
+    answer_inventory_question,
+    answer_inventory_with_llm,
+    initialize_chat_state,
+    summarize_gemini_error,
+)
 from constants import (
     NO_ORDER_COLUMNS,
     ORDER_CANDIDATE_COLUMNS,
@@ -41,6 +46,7 @@ def render_summary(
     budget_text = "上限なし" if budget_limit is None or budget_limit <= 0 else f"{int(budget_limit):,}円"
     forecast_items = int(metrics_df["forecast_daily_sales"].notna().sum()) if "forecast_daily_sales" in metrics_df.columns else 0
     policy_label = str(metrics_df["order_policy_label"].iloc[0]) if "order_policy_label" in metrics_df.columns else "都度発注"
+    inventory_mode_label = str(metrics_df["inventory_mode_label"].iloc[0]) if "inventory_mode_label" in metrics_df.columns else "標準"
 
     st.subheader("サマリー")
     col1, col2, col3 = st.columns(3)
@@ -52,7 +58,7 @@ def render_summary(
     col5.metric("過剰在庫候補額", f"{overstock_cost:,}円")
     col6.metric("毎月の保管コスト目安", f"{total_monthly_holding_cost:,}円")
     st.caption(
-        f"現在の発注方式: {policy_label} / 発注対象: {total_order_items}商品 / 予測適用: {forecast_items}商品 / "
+        f"現在の発注方式: {policy_label} / 在庫モード: {inventory_mode_label} / 発注対象: {total_order_items}商品 / 予測適用: {forecast_items}商品 / "
         f"予算設定: {budget_text} / 欠品高リスク額の目安: {stockout_risk_cost:,}円"
     )
 
@@ -664,7 +670,7 @@ def build_product_order_sheet(product_row: pd.Series, forecast_date: pd.Timestam
     """商品ごとの簡易発注シミュレーション表を作る。"""
     review_cycle_days = int(max(float(product_row.get("review_cycle_days", 0) or 0), 1))
     lead_time_days = int(max(float(product_row.get("lead_time_days", 0) or 0), 0))
-    safety_days = float(max(product_row.get("safety_days", 0) or 0, 0))
+    safety_days = float(max(product_row.get("effective_safety_days", product_row.get("safety_days", 0)) or 0, 0))
     demand_per_day = float(max(product_row.get("demand_basis_value", 0) or 0, 0))
     order_unit = float(max(product_row.get("order_unit", 1) or 1, 1))
     min_order_qty = float(max(product_row.get("min_order_qty", 0) or 0, 0))
@@ -760,6 +766,8 @@ def build_order_sheet_workbook_bytes(metrics_df: pd.DataFrame, forecast_date: pd
                     ["現在庫", round(float(row["current_stock"]), 1)],
                     ["需要基準", row["demand_basis_label"]],
                     ["需要基準値", round(float(row["demand_basis_value"]), 2)],
+                    ["在庫モード", row.get("inventory_mode_label", "標準")],
+                    ["補正後安全在庫日数", round(float(row.get("effective_safety_days", row["safety_days"])), 2)],
                     ["発注点", round(float(row["reorder_point"]), 1)],
                     ["目標在庫量", round(float(row["target_stock"]), 1)],
                     ["次回発注日", next_order_date],
@@ -1054,9 +1062,22 @@ def render_chat_section(
                     gemini_api_key,
                 )
             except Exception as exc:
+                fallback_answer = answer_inventory_question(
+                    prompt,
+                    raw_df,
+                    metrics_df,
+                    order_needed_df,
+                    optimized_df,
+                    risk_df,
+                    overstock_df,
+                )
                 answer = {
-                    "content": f"Gemini連携でエラーが発生したため、ルールベース回答に切り替えます。詳細: {exc}",
-                    "dataframe": None,
+                    "content": (
+                        "Gemini連携でエラーが発生したため、ルールベース回答に切り替えました。"
+                        f" 理由: {summarize_gemini_error(str(exc))}\n\n"
+                        f"{fallback_answer['content']}"
+                    ),
+                    "dataframe": fallback_answer["dataframe"],
                 }
         else:
             answer = answer_inventory_question(
